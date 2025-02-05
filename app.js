@@ -1,81 +1,70 @@
+require('dotenv').config(); // Load environment variables
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-const connectDB = require('./db.js')
-const app = express();
-const dotenv = require('dotenv');
-const authRoutes = require('./routes/authRoutes.js')
-const fileRoutes = require('./routes/fileRoutes.js')
 const http = require('http');
+
+// Import utility functions and routes
+const databaseConnection = require('./utils/database.js');
 const { init } = require('./socket.js');
-const server = http.createServer(app); // Create HTTP server to work with socket.io
-const io = init(server); // Initialize socket.io and pass it to the module
-const assessmentRoutes = require('./routes/assessmentRoutes.js')
-const courseRoutes = require('./routes/courseRoutes')
-const userRoutes = require('./routes/userRoutes.js')
-const courswareRoutes = require('./routes/coursewareRoutes.js')
 
-// Use CORS to allow your frontend React app to access the backend
+const authRoutes = require('./routes/authRoutes.js');
+const fileRoutes = require('./routes/fileRoutes.js');
+const assessmentRoutes = require('./routes/assessmentRoutes.js');
+const courseRoutes = require('./routes/courseRoutes.js');
+const userRoutes = require('./routes/userRoutes.js');
+const coursewareRoutes = require('./routes/coursewareRoutes.js');
+
+// Initialize Express app
+const app = express();
+const server = http.createServer(app);
+const io = init(server);
+
+// Middleware setup
 app.use(cors());
-app.use(express.json())
+app.use(express.json());
 
-// Load environment variables
-dotenv.config();
+// Connect to MongoDB
+db = databaseConnection();
 
-//middleware
-app.use(cors())
-
-
-//connect to database
-connectDB()
-
-// Use file routes
-app.use('/api', fileRoutes);
-
-// Assuming the MongoDB connection is already established
-const db = mongoose.connection;
-
-// When a new file is uploaded, emit a WebSocket event to notify all clients
+// WebSocket connection handling
 io.on('connection', (socket) => {
   console.log('A user connected');
-
   socket.on('fileUploaded', () => {
-    // Emit the 'fileUploaded' event to all connected clients
     io.emit('fileUploaded');
   });
 
   socket.on('disconnect', () => {
     console.log('A user disconnected');
-  })
-})
+  });
+});
 
-//to get db structure
+// Define API routes
+app.use('/api/auth', authRoutes);
+app.use('/api', fileRoutes);
+app.use('/api/assessments', assessmentRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/courseware', coursewareRoutes);
+
+// Route to inspect database structure (Retrieve all files from the database)
 app.get('/api/db/all-files', async (req, res) => {
   try {
     const files = await db.collection('files').find().toArray();
     res.json({ files });
   } catch (error) {
-    console.error("Error inspecting database:", error);
-    res.status(500).send("Error inspecting the database")
+    console.error('Error inspecting database:', error);
+    res.status(500).send('Error inspecting the database');
   }
-})
+});
 
-
-app.use('/api/auth', authRoutes)
-app.use('/api', fileRoutes);
-app.use('/api/assessments', assessmentRoutes)
-app.use('/api', courseRoutes);
-app.use("/api/users", userRoutes)
-app.use("/api/courseware", courswareRoutes)
-
-// Example: Home route to test server
+// Home route for testing the server
 app.get('/', (req, res) => {
   res.send('Welcome to the server!');
-})
+});
 
-// Start the server
-const PORT = process.env.PORT || 9100; // Use the PORT from the .env file or default to 5000
+// Start the server on the specified port
+const PORT = process.env.PORT || 9100;
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
+server.listen(PORT, async () => {
+  console.log(`Server running on port ${PORT}`);
+});

@@ -12,7 +12,7 @@ exports.uploadCourseware = async (req, res) => {
     try {
         const newCourseware = new Courseware({
             fileName,
-            file: file.path,  // Save the file path in the database
+            file: file.path,  
             course_id,
             assessment_name,
             assessment_id,

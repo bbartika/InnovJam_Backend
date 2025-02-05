@@ -9,12 +9,9 @@ const uploadToAiApi = async (content) => {
     const formData = new FormData();
     formData.append("content", content);
 
-    const response = await axios.post(
-      "http://175.41.151.78:8000/extract/",
-      formData
-    );
+    const response = await axios.post(`${process.env.AI_SERVER_URL}/extract/`, formData);
     console.log("Response from AI API received:", response.data);
-    return response.data; // Directly return parsed data
+    return response.data;
   } catch (error) {
     console.error("Error sending file to AI API:", error);
     throw new Error("AI processing failed.");
@@ -28,7 +25,7 @@ exports.createExam = async (req, res) => {
     course_name,
     assessmentName
 
-  } = req.body; // Extract from request body
+  } = req.body;
 
   console.log("Received course id:", course_id);
   console.log("Received course name:", course_name);

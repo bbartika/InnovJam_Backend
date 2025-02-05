@@ -15,22 +15,22 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['super_admin','admin', 'learner', 'assessor','trainer'], // Different user roles
+    enum: ['super_admin', 'admin', 'learner', 'assessor', 'trainer'],
   },
   organisation: {
     type: String,
-    ref: "Organisations", // If you have organisations, you can reference them
+    ref: "Organisations",
   },
   assignedCourses: [
     {
       type: String,
-      ref: "Courses", // Add Course schema if needed
+      ref: "Courses",
     },
   ],
   assignedAssessments: [
     {
       type: String,
-      ref: "Assessments", // Add Assessment schema if needed
+      ref: "Assessments",
     },
   ],
   createdAt: {
@@ -40,7 +40,8 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now,
-  }},
+  }
+},
   { timestamps: true }
 );
 
