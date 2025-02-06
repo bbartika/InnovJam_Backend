@@ -69,8 +69,6 @@ const createUsers = async (req, res) => {
   try {
     const users = req.body;
 
-    console.log(req.body)
-
     // Validate if users array is provided
     if (!Array.isArray(users) || users.length === 0) {
       return res.status(400).json({ message: "Please provide a valid array of users." });
@@ -186,10 +184,6 @@ const updateUser = async (req, res) => {
   const { name, email, password, role, course_code } = req.body;
 
   try {
-    // Validate the fields provided
-    if (!name || !role || !course_code) {
-      return res.status(400).json({ message: "Name, role, and course_code are required." });
-    }
 
     // If the password is provided, validate its length
     if (password && password.length < 8) {
@@ -247,9 +241,72 @@ const updateUser = async (req, res) => {
   }
 };
 
-const removeUser = async (req, res) => { };
+const removeUser = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findByIdAndDelete(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
 
-const getAllUsersByRole = async (req, res) => { }
+    if (user.role === 'super_admin') {
+      return res.status(400).json({ message: "admin cannot be deleted." });
+    }
+
+    res.status(200).json({ message: "User deleted successfully!" });
+
+  }
+  catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+
+  try {
+
+    // Query the database for all users
+    const users = await User.find();
+
+    // Arrays to hold users by their roles
+    const admins = [];
+    const learners = [];
+    const assessors = [];
+    const trainers = [];
+
+    // Classify users based on their roles
+    users.forEach(user => {
+      switch (user.role) {
+        case 'super_admin':
+        case 'admin':
+          admins.push(user);
+          break;
+        case 'learner':
+          learners.push(user);
+          break;
+        case 'assessor':
+          assessors.push(user);
+          break;
+        case 'trainer':
+          trainers.push(user);
+          break;
+        default:
+          break;
+      }
+    });
+
+    return res.json({
+      admins,
+      learners,
+      assessors,
+      trainers,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
 
 module.exports = {
   createUsers,
@@ -257,6 +314,6 @@ module.exports = {
   getUsersByRole,
   updateUser,
   removeUser,
-  getAllUsersByRole
+  getAllUsers
 }
 

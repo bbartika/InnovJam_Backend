@@ -104,7 +104,7 @@ const CourseSchema = new mongoose.Schema(
       enum: ["Private", "Public"],
       default: "Private",
     },
-    tags: {
+    tags: { 
       type: [String],
       default: [],
     },

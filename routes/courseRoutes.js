@@ -9,9 +9,7 @@ router.post('/create-new-course', courseController.createCourse);
 router.get('/courses', courseController.getAllCourses);
 
 // Route to get a course by its ID
-router.get('/courses/:courseId', courseController.getCourseById); // Added the new route
-
-
+router.get('/courses/:courseId', courseController.getCourseById);
 
 // Route to edit a course assessment
 router.put('/courses/assessment', courseController.editAssessment);

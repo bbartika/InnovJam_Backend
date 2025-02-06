@@ -3,15 +3,15 @@ const Course = require('../Model/CourseSchema_model'); // Import the Course mode
 // Create a new course
 exports.createCourse = async (req, res) => {
   try {
-    const { courseName, 
-      description, category, assessments, 
-      organisationName, status, 
-      assigned_trainers, 
-      assigned_learners, 
-      assigned_evaluators, 
-      resources ,
+    const { courseName,
+      description, category, assessments,
+      organisationName, status,
+      assigned_trainers,
+      assigned_learners,
+      assigned_evaluators,
+      resources,
       examScheduleDate
-    
+
     } = req.body;
 
     // Create new course
@@ -39,17 +39,17 @@ exports.createCourse = async (req, res) => {
 
 // Fetch all courses details
 exports.getAllCourses = async (req, res) => {
-    try {
-      const courses = await Course.find(); // Just fetch all courses without populating any fields
-      res.status(200).json(courses);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Failed to fetch courses' });
-    }
-  };
+  try {
+    const courses = await Course.find(); // Just fetch all courses without populating any fields
+    res.status(200).json(courses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch courses' });
+  }
+};
 
 
-  // Fetch a single course by ID
+// Fetch a single course by ID
 exports.getCourseById = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -78,7 +78,7 @@ exports.editAssessment = async (req, res) => {
     // Find course and update assessment
     const updatedCourse = await Course.findOneAndUpdate(
       { _id: courseId, 'assessments._id': assessmentId },
-      { 
+      {
         $set: {
           'assessments.$.name': name,
           'assessments.$.description': description,
