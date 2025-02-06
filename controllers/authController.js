@@ -52,5 +52,4 @@ const verifyToken = (req, res) => {
   });
 };
 
-
 module.exports = { loginUser, verifyToken }

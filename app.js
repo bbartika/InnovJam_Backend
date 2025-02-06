@@ -13,6 +13,7 @@ const assessmentRoutes = require('./routes/assessmentRoutes.js');
 const courseRoutes = require('./routes/courseRoutes.js');
 const userRoutes = require('./routes/userRoutes.js');
 const coursewareRoutes = require('./routes/coursewareRoutes.js');
+const initialUser = require('./services/initialUser');
 
 // Initialize Express app
 const app = express();
@@ -66,5 +67,6 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 9100;
 
 server.listen(PORT, async () => {
+  await initialUser();
   console.log(`Server running on port ${PORT}`);
 });
