@@ -1,114 +1,28 @@
 const mongoose = require("mongoose");
-const { nanoid } = require("nanoid"); // For generating unique slugs
 
 const CourseSchema = new mongoose.Schema(
   {
-    courseName: {
+    course_name: {
       type: String,
       required: true,
       trim: true,
     },
-    slug: {
+    course_code: {
       type: String,
-      unique: true,
-      default: () => nanoid(10),
+      required: true
     },
     description: {
       type: String,
-      trim: true,
-      default: "No description provided.",
+      default: null,
     },
-    category: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    assessments: [
-      {
-        name: {
-          type: String,
-          required: true,
-          trim: true,
-        },
-        description: {
-          type: String,
-          default: "",
-        },
-        weightage: {
-          type: Number,
-          default: 0,
-        },
-      },
-    ],
-
-    gradingSystem: {
-      type: [
-        {
-          grade: { type: String },
-          minPercentage: { type: Number },
-          maxPercentage: { type: Number },
-        },
-      ],
-      default: [],
-    },
-
-    assigned_trainers: {
-      type: [String],
-      default: []
-    },
-    assigned_learners: {
-      type: [String],
-      default: []
-    },
-    assigned_evaluators: {
-      type: [String],
-      default: []
-    },
-
-    uploaded_courseware: [
-      {
-        documentId: { type: mongoose.Schema.Types.ObjectId, ref: "Document" },
-        filename: { type: String },
-        url: { type: String, trim: true },
-      },
-    ],
-    resources: [
-      {
-        title: { type: String, trim: true },
-        url: { type: String, trim: true },
-      },
-    ],
-
-    organisationName: {
-      type: String,
-      trim: true,
-    },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-
-    status: {
-      type: String,
-      enum: [
-        "In Creation",
-        "Ongoing",
-        "Review Pending",
-        "Completed",
-        "Results Out",
-      ],
-      default: "In Creation",
+    total_marks: {
+      type: Number,
+      required: true
     },
     visibility: {
       type: String,
-      enum: ["Private", "Public"],
-      default: "Private",
+      default: "Public",
     },
-    tags: { 
-      type: [String],
-      default: [],
-    },
-
     startDate: {
       type: Date,
       default: null,
@@ -117,24 +31,10 @@ const CourseSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-
-    competent_learners: {
-      type: [String], // Array of learner emails marked as competent
-      default: []
-    },
-    total_enrollment_count: {
-      type: Number, // Total number of enrolled learners
+    total_enrollment: {
+      type: Number,
       default: 0
     },
-    submission_completed: {
-      type: [String], // Array of learner emails who completed submissions
-      default: []
-    },
-    examScheduleDate: {
-      type: Date, // Date for scheduling exams
-      default: null
-    },
-
     createdAt: {
       type: Date,
       default: Date.now,
@@ -145,16 +45,8 @@ const CourseSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
-// Pre-save middleware to update the slug if the course name changes
-CourseSchema.pre("save", function (next) {
-  if (this.isModified("courseName")) {
-    this.slug = `${this.courseName.toLowerCase().replace(/[\s]+/g, "-")}-${nanoid(5)}`;
-  }
-  next();
-});
-
-module.exports = mongoose.model("Course", CourseSchema);
+module.exports = mongoose.model("CourseSchema", CourseSchema);

@@ -9,7 +9,7 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const filesDirectory = path.join(__dirname, '..', 'files');
     if (!fs.existsSync(filesDirectory)) {
-      fs.mkdirSync(filesDirectory); // Create the directory if it doesn't exist
+      fs.mkdirSync(filesDirectory);  
     }
     cb(null, filesDirectory);
   },
@@ -19,6 +19,6 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage }).single('file'); // Handle single file upload
+const upload = multer({ storage: storage }).single('file');  
 
 module.exports = upload;

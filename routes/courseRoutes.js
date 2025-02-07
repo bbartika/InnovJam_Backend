@@ -1,20 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const courseController = require('../controllers/courseController');
 
-// Route to create a new course
-router.post('/create-new-course', courseController.createCourse);
+const { createCourse,
+    getAllCourses,
+    getCourseById,
+    updateCourse,
+    deleteCourse,
+    getCoursesByUserId } = require('../controllers/courseController');
+const authMiddleware = require('../middleware/authMiddleware');
+const validateObjectIdMiddleware = require('../middleware/mongoIdVerification')
 
-// Route to get all courses details
-router.get('/courses', courseController.getAllCourses);
-
-// Route to get a course by its ID
-router.get('/courses/:courseId', courseController.getCourseById);
-
-// Route to edit a course assessment
-router.put('/courses/assessment', courseController.editAssessment);
-
-// Route to delete a course
-router.delete('/courses/:courseId', courseController.deleteCourse);
+router.post('/create', createCourse);
+router.get('/getcourses', getAllCourses);
+router.get('/courses/:id', validateObjectIdMiddleware, getCourseById);
+router.get('/courses/user/:userId', getCoursesByUserId);
+router.put('/update/:id', validateObjectIdMiddleware, updateCourse);
+router.delete('/remove/:id', validateObjectIdMiddleware, deleteCourse);
 
 module.exports = router;

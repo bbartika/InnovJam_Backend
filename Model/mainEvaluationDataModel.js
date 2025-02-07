@@ -30,7 +30,7 @@ const userAssessmentDataSchema = new mongoose.Schema({
       gemini_score: { type: Number, default: null },
       feedback: { type: String, default: '' },
       human_assess_remarks: { type: String, default: null },
-      isCompetent: { type: Boolean, default: false }, // Mark if competent or not
+      isCompetent: { type: Boolean, default: false },
     },
   ],
 });

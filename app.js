@@ -41,7 +41,7 @@ io.on('connection', (socket) => {
 
 // Define API routes
 app.use('/api/auth', authRoutes);
-app.use('/api', fileRoutes);
+app.use('/api/files', fileRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/users', userRoutes);

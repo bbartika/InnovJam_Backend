@@ -9,13 +9,13 @@ const fileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  filePath: {
-    type: String,
-    required: true,
-  },
   content: {
     type: String,
     required: true,
+  },
+  courseId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'courseschema',
   },
   uploadedAt: {
     type: Date,

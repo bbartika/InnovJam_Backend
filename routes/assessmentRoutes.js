@@ -39,9 +39,6 @@ router.get("/:id", async (req, res) => {
 });
 
 
-// Get all assessments for a given courseId
-//------------------------------------------
-
 router.get("/all/:courseId", async (req, res) => {
   try {
     const { courseId } = req.params;

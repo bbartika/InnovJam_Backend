@@ -1,119 +1,145 @@
-const Course = require('../Model/CourseSchema_model'); // Import the Course model
+const CourseSchema = require('../Model/CourseSchema_model');
+const User = require('../Model/UserModel')
+const mongoIdVerification = require('../services/mongoIdValidation')
 
-// Create a new course
-exports.createCourse = async (req, res) => {
+const createCourse = async (req, res) => {
+  const { course_name, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
   try {
-    const { courseName,
-      description, category, assessments,
-      organisationName, status,
-      assigned_trainers,
-      assigned_learners,
-      assigned_evaluators,
-      resources,
-      examScheduleDate
-
-    } = req.body;
-
-    // Create new course
-    const newCourse = new Course({
-      courseName,
-      description,
-      category,
-      assessments,
-      organisationName,
-      status,
-      assigned_trainers,
-      assigned_learners,
-      assigned_evaluators,
-      resources,
-      examScheduleDate
-    });
-
-    const savedCourse = await newCourse.save();
-    res.status(201).json(savedCourse);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to create course' });
-  }
-};
-
-// Fetch all courses details
-exports.getAllCourses = async (req, res) => {
-  try {
-    const courses = await Course.find(); // Just fetch all courses without populating any fields
-    res.status(200).json(courses);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to fetch courses' });
-  }
-};
 
 
-// Fetch a single course by ID
-exports.getCourseById = async (req, res) => {
-  try {
-    const { courseId } = req.params;
-
-    const course = await Course.findById(courseId);
-
-    if (!course) {
-      return res.status(404).json({ error: 'Course not found' });
+    if (!course_name || !course_code || !total_marks || !visibility || !startDate || !endDate) {
+      return res.status(400).json({ message: "All fields except description and total_marks are required." });
     }
 
-    res.status(200).json(course);
+    // Check if course_code is already taken
+    const existingCourse = await CourseSchema.findOne({ course_code });
+    if (existingCourse) {
+      return res.status(400).json({ message: "Course code must be unique." });
+    }
+
+    // Create new course
+    const newCourse = new CourseSchema({
+      course_name,
+      course_code,
+      description,
+      total_marks,
+      visibility,
+      total_enrollment,
+      startDate,
+      endDate,
+    });
+
+    await newCourse.save();
+    return res.status(201).json({ message: "Course created successfully", course: newCourse });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to fetch course' });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
 
-
-
-
-// Edit existing course assessment details
-exports.editAssessment = async (req, res) => {
+// Get all courses
+const getAllCourses = async (req, res) => {
   try {
-    const { courseId, assessmentId, name, description, weightage } = req.body;
 
-    // Find course and update assessment
-    const updatedCourse = await Course.findOneAndUpdate(
-      { _id: courseId, 'assessments._id': assessmentId },
-      {
-        $set: {
-          'assessments.$.name': name,
-          'assessments.$.description': description,
-          'assessments.$.weightage': weightage,
-        }
-      },
+    const courses = await CourseSchema.find();
+    return res.status(200).json(courses);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+const getCoursesByUserId = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    if (!mongoIdVerification(userId)) {
+      return res.status(400).json({ message: "Invalid user ID." });
+    }
+
+    const userDetails = await User.findById(userId);
+    if (!userDetails) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (userDetails.role === "super_admin" || userDetails.role === "admin") {
+      const courses = await Course.find();
+      return res.status(200).json(courses);
+    }
+
+    // Extract array of course codes
+    const courseCodes = userDetails.course_code;
+
+    // Find courses where course_code matches any in the user's course_code array
+    const courses = await CourseSchema.find({ course_code: { $in: courseCodes } });
+
+    return res.status(200).json(courses);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Get a single course by ID
+const getCourseById = async (req, res) => {
+  try {
+    const course = await CourseSchema.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+    return res.status(200).json(course);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Update a course
+const updateCourse = async (req, res) => {
+  try {
+    const { course_name, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
+
+    if (!course_name || !course_code || !visibility || !total_marks || !startDate || !endDate) {
+      return res.status(400).json({ message: "All fields except description and total_marks are required." });
+    }
+
+    // Check if course_code is already taken by another course
+    if (course_code) {
+      const existingCourse = await CourseSchema.findOne({ course_code, _id: { $ne: req.params.id } });
+      if (existingCourse) {
+        return res.status(400).json({ message: "Course code must be unique." });
+      }
+    }
+
+    const updatedCourse = await CourseSchema.findByIdAndUpdate(
+      req.params.id,
+      { course_name, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate, updatedAt: Date.now() },
       { new: true }
     );
 
     if (!updatedCourse) {
-      return res.status(404).json({ error: 'Course or assessment not found' });
+      return res.status(404).json({ message: "Course not found" });
     }
-
-    res.status(200).json(updatedCourse);
+    return res.status(200).json({ message: "Course updated successfully", course: updatedCourse });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to update assessment' });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
 
-// Delete an existing course
-exports.deleteCourse = async (req, res) => {
+// Delete a course
+const deleteCourse = async (req, res) => {
   try {
-    const { courseId } = req.params;
-
-    // Delete the course
-    const deletedCourse = await Course.findByIdAndDelete(courseId);
-
+    const deletedCourse = await CourseSchema.findByIdAndDelete(req.params.id);
     if (!deletedCourse) {
-      return res.status(404).json({ error: 'Course not found' });
+      return res.status(404).json({ message: "Course not found" });
     }
-
-    res.status(200).json({ message: 'Course deleted successfully' });
+    return res.status(200).json({ message: "Course deleted successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to delete course' });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
+};
+
+
+module.exports = {
+  createCourse,
+  getAllCourses,
+  getCourseById,
+  updateCourse,
+  deleteCourse,
+  getCoursesByUserId
 };
