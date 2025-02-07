@@ -75,6 +75,7 @@ const uploadFile = async (req, res) => {
     await newFile.save();
 
     res.status(200).json({
+      fileId: newFile._id,
       uploaded: true,
       message: 'File uploaded and saved to database',
     });
@@ -131,6 +132,7 @@ const updateFile = async (req, res) => {
     const updatedFile = await File.findByIdAndUpdate(fileId, updatedFields, { new: true });
 
     res.status(200).json({
+      fileId: updatedFile._id,
       updated: true,
       message: "File updated successfully",
     });

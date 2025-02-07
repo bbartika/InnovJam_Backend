@@ -3,7 +3,8 @@ const router = express.Router();
 const Assessment = require("../Model/assessment_model"); // Import the Assessment model
 const assessmentController = require("../controllers/assessmentController");
 const { updateFinalEvaluatedData } = require('../controllers/assessmentController');
-const Assessments = require("../Model/assessment_model"); // Import your model
+const Assessments = require("../Model/assessment_model");
+const { createAssessment } = require('../controllers/createExamController');
 
 // Route to fetch all assessments
 router.get("/", async (req, res) => {
@@ -57,6 +58,7 @@ router.get("/all/:courseId", async (req, res) => {
   }
 });
 
+router.post('/createassesment', createAssessment);
 
 
 // Route to save student's answer for a specific question
