@@ -23,7 +23,7 @@ const parsePdf = async (filePath) => {
 const parseDocx = async (filePath) => {
   try {
     const data = await mammoth.extractRawText({ path: filePath });
-    return data.value; // Return the extracted text
+    return data.value;
   } catch (error) {
     console.error("Error during DOCX parsing:", error.message);
     throw new Error("Error parsing DOCX.");
@@ -32,7 +32,7 @@ const parseDocx = async (filePath) => {
 
 // Upload assessment files
 const uploadFile = async (req, res) => {
-  const { title, courseId } = req.body;
+  const { courseId } = req.body;
   const file = req.file;
 
   if (!file) {
@@ -66,7 +66,7 @@ const uploadFile = async (req, res) => {
 
     // Save file metadata to database
     const newFile = new File({
-      title: title,
+      title: "title",
       courseId: courseId,
       fileName: fileName,
       content: extractedText,
@@ -85,6 +85,62 @@ const uploadFile = async (req, res) => {
   }
 };
 
+const updateFile = async (req, res) => {
+  const { courseId } = req.body;
+  const { fileId } = req.params;
+  const file = req.file;
+
+  try {
+    if (!mongoIdVerification(fileId) || (courseId && !mongoIdVerification(courseId))) {
+      return res.status(400).json({ message: "Invalid file ID or course ID." });
+    }
+
+    let existingFile = await File.findById(fileId);
+    if (!existingFile) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    if (courseId) {
+      const course = await Course.findById(courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found." });
+      }
+    }
+
+    let updatedFields = { title: "dummy1" };
+
+    if (file) {
+      let extractedText = "";
+      const ext = path.extname(file.originalname).toLowerCase();
+
+      // Extract text from new file if applicable
+      if (ext === ".pdf") {
+        extractedText = await parsePdf(file.path);
+      } else if (ext === ".docx") {
+        extractedText = await parseDocx(file.path);
+      }
+
+      // Generate a new unique filename
+      const fileName = `${Date.now()}_${file.originalname}`;
+
+      updatedFields.fileName = fileName;
+      updatedFields.content = extractedText;
+    }
+
+    // Update the file in the database
+    const updatedFile = await File.findByIdAndUpdate(fileId, updatedFields, { new: true });
+
+    res.status(200).json({
+      updated: true,
+      message: "File updated successfully",
+    });
+
+  } catch (error) {
+    console.error("Error updating file:", error);
+    res.status(500).json({ message: "Error updating file", error: error.message });
+  }
+};
+
 const getFilesByClass = async (req, res) => {
   const { courseId } = req.params;
 
@@ -93,7 +149,7 @@ const getFilesByClass = async (req, res) => {
       return res.status(400).json({ message: "Invalid course ID." });
     }
 
-    const files = await File.find({ courseId: courseId });
+    const files = await File.find({ courseId: courseId }).select('-content');
 
     if (!files) {
       return res.status(404).json({ message: 'Files not found', files: [] });
@@ -112,7 +168,7 @@ const deleteFileById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Find the file by ID
+
     const file = await File.findById(id);
     if (!file) {
       return res.status(404).json({ message: 'File not found.' });
@@ -135,7 +191,7 @@ const deleteFileById = async (req, res) => {
     }
 
     getIo().emit('fileDeleted', file);
-    res.status(200).json({ message: 'File deleted successfully', file: file });
+    res.status(200).json({ message: 'File deleted successfully' });
   } catch (error) {
     console.error('Error deleting file:', error);
     res.status(500).json({ error: 'Failed to delete file' });
@@ -145,5 +201,6 @@ const deleteFileById = async (req, res) => {
 module.exports = {
   uploadFile,
   deleteFileById,
-  getFilesByClass
+  getFilesByClass,
+  updateFile
 };
