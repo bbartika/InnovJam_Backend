@@ -42,7 +42,6 @@ const assignAssessment = async (req, res) => {
             assessmentId: assessmentId,
             userId: { $in: learners.map(learner => learner._id) }
         });
-
         const assignedUserIds = new Set(existingAssignments.map(a => a.userId.toString()));
 
         // 🔍 Filter learners who are NOT already assigned
@@ -155,6 +154,7 @@ const getAssignAssessmentByUserIdAndAssessmentId = async (req, res) => {
             .populate("assessmentId", "title description")
             .lean();
 
+
         if (!assignment) {
             return res.status(404).json({ message: "Assignment not found" });
         }
@@ -182,6 +182,7 @@ const getAllAssignedAssessmentByAssessmentId = async (req, res) => {
 
         // 🔍 Check if the assessment exists
         const assessment = await Assessment.findById(assessmentId).lean();
+
         if (!assessment) {
             return res.status(404).json({ message: "Assessment not found" });
         }
@@ -207,6 +208,48 @@ const getAllAssignedAssessmentByAssessmentId = async (req, res) => {
     }
 };
 
+const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
+    const { userId, courseId } = req.query;
+
+    console.log(userId + " USERID")
+
+    try {
+        if (!mongoIdVerification(userId) || !mongoIdVerification(courseId)) {
+            return res.status(400).json({ message: "Invalid user ID or course ID." });
+        }
+
+        // 🔍 Get all assessments linked to the given courseId
+        const assessments = await Assessment.find({ courseId }).lean();
+        if (assessments.length === 0) {
+            return res.status(404).json({ message: "No assessments found for this course." });
+        }
+
+        // 🔍 Get all assignments of the user for this course's assessments
+        const assessmentIds = assessments.map(a => a._id);
+        const assignments = await AssignAssessment.find({ 
+            userId, 
+            assessmentId: { $in: assessmentIds } 
+        })
+        .populate("assessmentId", "title description assessment_type")
+        .lean();
+
+        if (assignments.length === 0) {
+            return res.status(404).json({ message: "No assigned assessments found for this user in this course." });
+        }
+
+        // ✅ Format response: Merge assignment details with assessment data
+        const responseData = assignments.map(assignment => ({
+            ...assignment,
+            assessment_name: assignment.assessmentId?.title || "N/A",
+            assessment_type: assignment.assessmentId?.assessment_type || "N/A"
+        }));
+
+        return res.status(200).json(responseData);
+    } catch (error) {
+        return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
 
 
 module.exports = {
@@ -215,7 +258,8 @@ module.exports = {
     removeAssignedAssessment,
     udpateAssignedAssessment,
     getAssignAssessmentByUserIdAndAssessmentId,
-    getAllAssignedAssessmentByAssessmentId
+    getAllAssignedAssessmentByAssessmentId,
+    getAssignedAssessmentsByUserIdAndCourseId
 }
 
 

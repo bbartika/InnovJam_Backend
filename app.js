@@ -28,21 +28,6 @@ const io = init(server);
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-db = databaseConnection();
-
-// WebSocket connection handling
-io.on('connection', (socket) => {
-  console.log('A user connected');
-  socket.on('fileUploaded', () => {
-    io.emit('fileUploaded');
-  });
-
-  socket.on('disconnect', () => {
-    console.log('A user disconnected');
-  });
-});
-
 // Define API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
@@ -54,18 +39,6 @@ app.use('/api/grades', gradeRoutes);
 app.use('/api/grade-ranges', gradeRangeRoutes);
 app.use('/api/assigned-assessments', assignedAssessmentRoutes)
 
-
-// Route to inspect database structure (Retrieve all files from the database)
-app.get('/api/db/all-files', async (req, res) => {
-  try {
-    const files = await db.collection('files').find().toArray();
-    res.json({ files });
-  } catch (error) {
-    console.error('Error inspecting database:', error);
-    res.status(500).send('Error inspecting the database');
-  }
-});
-
 // Home route for testing the server
 app.get('/', (req, res) => {
   res.send('Welcome to the server!');
@@ -75,6 +48,7 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 9100;
 
 server.listen(PORT, async () => {
+  await databaseConnection();
   await initialUser();
   console.log(`Server running on port ${PORT}`);
 });
