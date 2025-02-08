@@ -137,11 +137,6 @@ const createAssessment = async (req, res) => {
     const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration } = aiResponse;
 
 
-    return res.status(200).json({ success: true, message: "File uploaded successfully", aiResponse });
-
-    console.log(questions_and_answers)
-
-
     // 🔍 Check if an assessment with the same `course_id` and `fileId` already exists
     let existingAssessment = await Assessment.findOne({ courseId: course_id, assessment_file_id: fileId });
 
@@ -154,7 +149,7 @@ const createAssessment = async (req, res) => {
       existingAssessment.assessment_type = assessment_type;
       existingAssessment.case_study_context = case_study_context;
       existingAssessment.duration = duration || "";
-      existingAssessment.assessment_instruction = assessment_instruction || "";
+      existingAssessment.assessment_instruction = assessment_instruction || [];
 
       await existingAssessment.save();
     } else {
@@ -164,7 +159,7 @@ const createAssessment = async (req, res) => {
         assessment_type,
         case_study_context,
         duration: duration || "",
-        assessment_instruction: assessment_instruction || "",
+        assessment_instruction: assessment_instruction || [],
         courseId: course_id,
         assessment_file_id: fileId
       });
@@ -186,8 +181,6 @@ const createAssessment = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Exam assessment updated successfully",
-      assessment: existingAssessment,
-      questions_and_answers
     });
 
   } catch (error) {
@@ -224,21 +217,33 @@ const getQuestionsBasedOnAssessmentId = async (req, res) => {
 
 const removeAssessment = async (req, res) => {
   const { id } = req.params;
-  try {
 
-    const assessment = await Assessment.findByIdAndDelete(id);
+  try {
+    if (!mongoIdVerification(id)) {
+      return res.status(400).json({ message: "Invalid assessment ID." });
+    }
+
+    // 🔍 Check if the assessment exists
+    const assessment = await Assessment.findById(id);
     if (!assessment) {
       return res.status(404).json({ message: "Assessment not found" });
     }
-    return res.status(200).json({ message: "Assessment deleted successfully" });
-  }
-  catch (error) {
+
+    // 🗑️ Delete all questions linked to this assessment
+    await Question.deleteMany({ assessmentId: id });
+
+    // 🗑️ Delete the assessment
+    await Assessment.findByIdAndDelete(id);
+
+    return res.status(200).json({ message: "Assessment and related questions deleted successfully" });
+
+  } catch (error) {
+    console.error("Error deleting assessment:", error);
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
-}
+};
 
 const updateAssessment = async (req, res) => { };
-
 
 module.exports = {
   removeAssessment,

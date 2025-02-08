@@ -32,7 +32,7 @@ const parseDocx = async (filePath) => {
 
 // Upload assessment files
 const uploadFile = async (req, res) => {
-  const { courseId } = req.body;
+  const { courseId, title } = req.body;
   const file = req.file;
 
   if (!file) {
@@ -66,7 +66,7 @@ const uploadFile = async (req, res) => {
 
     // Save file metadata to database
     const newFile = new File({
-      title: "title",
+      title: title,
       courseId: courseId,
       fileName: fileName,
       content: extractedText,
@@ -87,7 +87,7 @@ const uploadFile = async (req, res) => {
 };
 
 const updateFile = async (req, res) => {
-  const { courseId } = req.body;
+  const { courseId, title } = req.body;
   const { fileId } = req.params;
   const file = req.file;
 
@@ -108,7 +108,7 @@ const updateFile = async (req, res) => {
       }
     }
 
-    let updatedFields = { title: "dummy1" };
+    let updatedFields = { title: title };
 
     if (file) {
       let extractedText = "";

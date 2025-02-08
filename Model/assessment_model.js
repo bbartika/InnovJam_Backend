@@ -46,7 +46,7 @@ const assessmentSchema = new mongoose.Schema({
     required: true
   },
   assessment_instruction: {
-    type: String,
+    type: [String],
     required: false
   },
   case_study_context: {

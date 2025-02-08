@@ -42,7 +42,7 @@ const createUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      password_org: password,
+      password_org: hashedPassword,
       role,
       course_code
     });
@@ -307,6 +307,9 @@ const getAllUsers = async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 };
+
+
+
 
 module.exports = {
   createUsers,

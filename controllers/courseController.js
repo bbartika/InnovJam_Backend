@@ -135,11 +135,47 @@ const deleteCourse = async (req, res) => {
 };
 
 
+const getAllLearnersByCourse = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!mongoIdVerification(id)) {
+      return res.status(400).json({ message: "Invalid course ID." });
+    }
+
+    // 🔍 Check if the course exists
+    const course = await CourseSchema.findById(id);
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    const learners = await User.find(
+      {
+        course_code: { $in: [course.course_code] },
+        role: "learner"
+      },
+      { password: 0, password_org: 0 }
+    );
+
+    return res.status(200).json({
+      success: true,
+      learners,
+      count: learners.length
+    });
+
+  } catch (error) {
+    console.error("Error fetching learners:", error);
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+
 module.exports = {
   createCourse,
   getAllCourses,
   getCourseById,
   updateCourse,
   deleteCourse,
-  getCoursesByUserId
+  getCoursesByUserId,
+  getAllLearnersByCourse
 };
