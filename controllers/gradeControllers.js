@@ -1,15 +1,14 @@
 const Grade = require('../Model/gradeModel');
 
-
 const createGrade = async (req, res) => {
     try {
-        const { name, range, message } = req.body;
+        const { name, status } = req.body;
 
-        if (!name || !range || !message) {
+        if (!name) {
             return res.status(400).json({ error: 'All fields are required' });
         }
 
-        const newGrade = new Grade({ name, range, message });
+        const newGrade = new Grade({ name, status: false });
         await newGrade.save();
         res.status(201).json(newGrade);
     } catch (error) {
@@ -20,14 +19,14 @@ const createGrade = async (req, res) => {
 // Update an existing Grade
 const updateGrade = async (req, res) => {
     const { id } = req.params;
-    const { name, range, message } = req.body;
+    const { name, status } = req.body;
     try {
 
-        if (!name || !range || !message) {
+        if (!name) {
             return res.status(400).json({ error: 'All fields are required' });
         }
 
-        const updatedGrade = await Grade.findByIdAndUpdate(id, { name, range, message }, { new: true });
+        const updatedGrade = await Grade.findByIdAndUpdate(id, { name, status }, { new: true });
 
         if (!updatedGrade) {
             return res.status(404).json({ error: 'Grade not found' });
@@ -65,6 +64,16 @@ const getAllGrades = async (req, res) => {
     }
 };
 
+
+const getAllGradesStatusTrue = async (req, res) => {
+    try {
+        const grades = await Grade.find({ status: true });
+        res.status(200).json(grades);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
 // Get a Grade by ID
 const getGradeById = async (req, res) => {
     try {
@@ -84,5 +93,6 @@ module.exports = {
     updateGrade,
     removeGrade,
     getAllGrades,
-    getGradeById
+    getGradeById,
+    getAllGradesStatusTrue
 };

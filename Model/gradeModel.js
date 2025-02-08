@@ -5,15 +5,12 @@ const gradeSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    range: {
-        type: String,
-        required: true
-    },
-    message: {
-        type: String,
-        required: true
+    status: {
+        type: Boolean,
+        default: false
     }
 });
+
 
 const Grade = mongoose.model('Grade', gradeSchema);
 module.exports = Grade

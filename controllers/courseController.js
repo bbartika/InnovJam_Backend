@@ -139,6 +139,7 @@ const getAllLearnersByCourse = async (req, res) => {
   const { id } = req.params;
 
   try {
+    
     if (!mongoIdVerification(id)) {
       return res.status(400).json({ message: "Invalid course ID." });
     }
