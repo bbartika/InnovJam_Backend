@@ -13,6 +13,7 @@ const assessmentRoutes = require('./routes/assessmentRoutes.js');
 const courseRoutes = require('./routes/courseRoutes.js');
 const userRoutes = require('./routes/userRoutes.js');
 const coursewareRoutes = require('./routes/coursewareRoutes.js');
+const gradeRoutes = require('./routes/gradeRoutes.js')
 const initialUser = require('./services/initialUser');
 
 // Initialize Express app
@@ -46,6 +47,7 @@ app.use('/api/assessments', assessmentRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/courseware', coursewareRoutes);
+app.use('/api/grades', gradeRoutes);
 
 // Route to inspect database structure (Retrieve all files from the database)
 app.get('/api/db/all-files', async (req, res) => {

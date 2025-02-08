@@ -2,6 +2,11 @@
 const mongoose = require('mongoose');
 
 const questionSchema = new mongoose.Schema({
+    assessmentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Assessment',
+        required: true
+    },
     question_number: {
         type: String,
         required: true
@@ -11,7 +16,8 @@ const questionSchema = new mongoose.Schema({
         required: true
     },
     question_instruction: {
-        type: String
+        type: String,
+        default: ''
     },
     suggested_answer: {
         type: Array,
