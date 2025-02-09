@@ -98,6 +98,7 @@ const mongoIdVerification = require('../services/mongoIdValidation')
 //   }
 // };
 
+
 const uploadToAiApi = async (content, retries = 3) => {
   const formData = new FormData();
   formData.append("content", content);
@@ -269,13 +270,26 @@ const removeAssessment = async (req, res) => {
 const getQuestionsForAssessment = async (req, res) => {
   const { id } = req.params;
   try {
+
+    const assessment = await Assessment.findById(id)
+
+    if (!assessment) {
+      return res.status(404).json({ message: "Assessment not found" });
+    }
+
     const questions = await Question.find({ assessmentId: id }).select("-suggested_answer");
-    return res.status(200).json(questions);
+
+    const assessmentdata = {
+      ...assessment.toObject(),
+      questions,
+    };
+
+
+    return res.status(200).json(assessmentdata);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-
 
 const updateAssessment = async (req, res) => { };
 

@@ -100,9 +100,35 @@ const getStudentAnswerById = async (req, res) => {
     }
 };
 
+const getStudentAnswerByQuestionId = async (req, res) => {
+    const { user_id, question_id } = req.query;
+
+    try {
+        if (!user_id || !question_id) {
+            return res.status(400).json({ success: false, message: "user_id and question_id are required." });
+        }
+
+        const answer = await StudentAnswer.findOne({ user_id, question_id }).select('student_answer');
+
+        if (!answer) {
+            return res.status(404).json({ success: false, message: "Student answer not found." });
+        }
+
+        return res.status(200).json({
+            success: true,
+            student_answer: answer.student_answer,
+        });
+
+    } catch (error) {
+        console.error("Error in getStudentAnswerByQuestionId:", error);
+        return res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
+
 module.exports = {
     studentAnswerResponse,
     updateStudentAnswer,
     getAllStudentAnswers,
-    getStudentAnswerById
+    getStudentAnswerById,
+    getStudentAnswerByQuestionId
 };
