@@ -3,6 +3,7 @@ const FormData = require("form-data");
 const File = require("../Model/file");
 const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
+const AssignAssessment = require('../Model/assignAssessmentSchema');
 const mongoIdVerification = require('../services/mongoIdValidation')
 
 
@@ -269,6 +270,7 @@ const removeAssessment = async (req, res) => {
 
 const getQuestionsForAssessment = async (req, res) => {
   const { id } = req.params;
+
   try {
 
     const assessment = await Assessment.findById(id)
@@ -283,7 +285,6 @@ const getQuestionsForAssessment = async (req, res) => {
       ...assessment.toObject(),
       questions,
     };
-
 
     return res.status(200).json(assessmentdata);
   } catch (error) {

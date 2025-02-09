@@ -14,25 +14,40 @@ const studentAnswerResponse = async (req, res) => {
             return res.status(400).json({ success: false, message: "All fields are required." });
         }
 
-        const newAnswer = new StudentAnswer({
-            user_id,
-            question_id,
-            student_answer,
-        });
+        // Check if an answer already exists for the same user and question
+        let existingAnswer = await StudentAnswer.findOne({ user_id, question_id });
 
-        await newAnswer.save();
+        if (existingAnswer) {
+            // Update existing student answer
+            existingAnswer.student_answer = student_answer;
+            await existingAnswer.save();
+            return res.status(200).json({
+                success: true,
+                message: "Student answer updated successfully.",
+                data: existingAnswer,
+            });
+        } else {
+            // Create a new student answer
+            const newAnswer = new StudentAnswer({
+                user_id,
+                question_id,
+                student_answer,
+            });
 
-        return res.status(201).json({
-            success: true,
-            message: "Student answer submitted successfully.",
-            data: newAnswer,
-        });
+            await newAnswer.save();
 
+            return res.status(201).json({
+                success: true,
+                message: "Student answer submitted successfully.",
+                data: newAnswer,
+            });
+        }
     } catch (error) {
         console.error("Error in studentAnswerResponse:", error);
         return res.status(500).json({ success: false, message: "Internal server error." });
     }
 };
+
 
 // 📌 Update a student's answer (including scores and feedback)
 const updateStudentAnswer = async (req, res) => {
