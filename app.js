@@ -16,6 +16,7 @@ const coursewareRoutes = require('./routes/coursewareRoutes.js');
 const gradeRoutes = require('./routes/gradeRoutes.js')
 const gradeRangeRoutes = require('./routes/gradeRangeRoutes.js')
 const assignedAssessmentRoutes = require('./routes/assignAssessmentRoutes')
+const studentAnswerRoutes = require('./routes/studentAnswerRoutes.js')
 const initialUser = require('./services/initialUser');
 
 // Initialize Express app
@@ -37,6 +38,7 @@ app.use('/api/courseware', coursewareRoutes);
 app.use('/api/grades', gradeRoutes);
 app.use('/api/grade-ranges', gradeRangeRoutes);
 app.use('/api/assigned-assessments', assignedAssessmentRoutes)
+app.use('/api/student-answers', studentAnswerRoutes)
 
 // Home route for testing the server
 app.get('/', (req, res) => {

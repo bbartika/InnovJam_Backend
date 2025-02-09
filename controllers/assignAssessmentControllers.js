@@ -211,8 +211,6 @@ const getAllAssignedAssessmentByAssessmentId = async (req, res) => {
 const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
     const { userId, courseId } = req.query;
 
-    console.log(userId + " USERID")
-
     try {
         if (!mongoIdVerification(userId) || !mongoIdVerification(courseId)) {
             return res.status(400).json({ message: "Invalid user ID or course ID." });
@@ -233,9 +231,11 @@ const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
             .populate("assessmentId", "title description assessment_type")
             .lean();
 
+
         if (assignments.length === 0) {
             return res.status(404).json({ message: "No assigned assessments found for this user in this course." });
         }
+
 
         // ✅ Format response: Merge assignment details with assessment data
         const responseData = assignments.map(assignment => ({
