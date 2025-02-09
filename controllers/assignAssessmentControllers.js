@@ -50,7 +50,7 @@ const assignAssessment = async (req, res) => {
             .map(learner => ({
                 userId: learner._id,
                 assessmentId: assessmentId,
-                status: "in_progress"
+                status: "pending"
             }));
 
         if (newAssignments.length === 0) {
@@ -81,7 +81,7 @@ const reassignAssessment = async (req, res) => {
         }
 
         // 🔄 Update only the status to "pending"
-        assignment.status = "pending";
+        assignment.status = "in_progress";
         await assignment.save();
 
         return res.status(200).json({ message: "Assessment reassigned successfully", assignment });
@@ -226,12 +226,12 @@ const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
 
         // 🔍 Get all assignments of the user for this course's assessments
         const assessmentIds = assessments.map(a => a._id);
-        const assignments = await AssignAssessment.find({ 
-            userId, 
-            assessmentId: { $in: assessmentIds } 
+        const assignments = await AssignAssessment.find({
+            userId,
+            assessmentId: { $in: assessmentIds }
         })
-        .populate("assessmentId", "title description assessment_type")
-        .lean();
+            .populate("assessmentId", "title description assessment_type")
+            .lean();
 
         if (assignments.length === 0) {
             return res.status(404).json({ message: "No assigned assessments found for this user in this course." });
@@ -249,8 +249,6 @@ const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
-
-
 
 module.exports = {
     assignAssessment,
