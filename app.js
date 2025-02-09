@@ -20,6 +20,7 @@ const initialUser = require('./services/initialUser');
 
 
 // Initialize Express app
+// Initialize Express app
 const app = express();
 const server = http.createServer(app);
 const io = init(server);
