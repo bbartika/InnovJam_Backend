@@ -217,6 +217,16 @@ const getAllAssessments = async (req, res) => {
   }
 };
 
+const getAssessmentById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const assessment = await Assessment.findById(id);
+    return res.status(200).json(assessment);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+}
+
 const getQuestionsBasedOnAssessmentId = async (req, res) => {
   const { id } = req.params;
   try {
@@ -256,6 +266,16 @@ const removeAssessment = async (req, res) => {
   }
 };
 
+const getQuestionsForAssessment = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const questions = await Question.find({ assessmentId: id }).select("-suggested_answer");
+    return res.status(200).json(questions);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
 
 const updateAssessment = async (req, res) => { };
 
@@ -264,5 +284,7 @@ module.exports = {
   getQuestionsBasedOnAssessmentId,
   getAllAssessments,
   uploadToAiApi,
-  createAssessment
+  createAssessment,
+  getAssessmentById,
+  getQuestionsForAssessment
 }
