@@ -102,7 +102,7 @@ const uploadToAiApi = async (content) => {
   try {
     const formData = new FormData();
     formData.append("content", content);
-
+    console.log(process.env.AI_SERVER_URL)
     const response = await axios.post(`${process.env.AI_SERVER_URL}/extract/`, formData);
     return response.data;
   } catch (error) {
@@ -134,6 +134,7 @@ const createAssessment = async (req, res) => {
 
     // Process file with AI and get structured questions
     const aiResponse = await uploadToAiApi(file.content);
+    console.log(aiResponse)
     const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration } = aiResponse;
 
 
