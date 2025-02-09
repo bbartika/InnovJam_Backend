@@ -98,23 +98,30 @@ const mongoIdVerification = require('../services/mongoIdValidation')
 //   }
 // };
 
-const uploadToAiApi = async (content) => {
-  try {
-    const formData = new FormData();
-    formData.append("content", content);
-    console.log(process.env.AI_SERVER_URL)
-    const response = await axios.post(`${process.env.AI_SERVER_URL}/extract/`, formData);
-    return response.data;
-  } catch (error) {
-    console.error("Error sending file to AI API:", error);
-    throw new Error("AI processing failed.");
+const uploadToAiApi = async (content, retries = 3) => {
+  const formData = new FormData();
+  formData.append("content", content);
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}: Sending request to AI API...`);
+      const response = await axios.post(
+        `${process.env.AI_SERVER_URL}/extract/`,
+        formData,
+        { timeout: 600000 }
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Attempt ${attempt} failed:`, error.message || error);
+      if (attempt === retries) return { error: "AI API request failed after retries." };
+    }
   }
 };
 
 const createAssessment = async (req, res) => {
-  const { course_id, assessment_name, fileId } = req.body;
-
   try {
+    const { course_id, assessment_name, fileId } = req.body;
+
     if (!mongoIdVerification(course_id)) {
       return res.status(400).json({ message: "Invalid course ID." });
     }
@@ -132,20 +139,23 @@ const createAssessment = async (req, res) => {
       return res.status(404).json({ error: "File not found" });
     }
 
-    // Process file with AI and get structured questions
+    // 🔄 Process file with AI
     const aiResponse = await uploadToAiApi(file.content);
-    console.log(aiResponse)
+
+    // 🛑 If AI API fails, return a safe error response
+    if (aiResponse.error) {
+      return res.status(500).json({ success: false, message: aiResponse.error });
+    }
+
+    console.log(aiResponse);
     const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration } = aiResponse;
 
-
-    // 🔍 Check if an assessment with the same `course_id` and `fileId` already exists
+    // 🔍 Check if an assessment already exists
     let existingAssessment = await Assessment.findOne({ courseId: course_id, assessment_file_id: fileId });
 
     if (existingAssessment) {
-      // 🗑️ Delete existing questions linked to this assessment
       await Question.deleteMany({ assessmentId: existingAssessment._id });
 
-      // ✏️ Update existing assessment
       existingAssessment.assessment_name = assessment_name;
       existingAssessment.assessment_type = assessment_type;
       existingAssessment.case_study_context = case_study_context;
@@ -154,7 +164,6 @@ const createAssessment = async (req, res) => {
 
       await existingAssessment.save();
     } else {
-      // 🆕 Create a new assessment if not found
       existingAssessment = new Assessment({
         assessment_name,
         assessment_type,
@@ -162,19 +171,19 @@ const createAssessment = async (req, res) => {
         duration: duration || "",
         assessment_instruction: assessment_instruction || [],
         courseId: course_id,
-        assessment_file_id: fileId
+        assessment_file_id: fileId,
       });
 
       await existingAssessment.save();
     }
 
-    // 🔄 Insert updated questions into the `Question` collection
+    // 🔄 Insert new questions
     const questionDocuments = questions_and_answers.map((q) => ({
       assessmentId: existingAssessment._id,
       question_number: q.question_number,
       question: q.question,
       question_instruction: q.question_instruction || "",
-      suggested_answer: q.suggested_answer || []
+      suggested_answer: q.suggested_answer || [],
     }));
 
     await Question.insertMany(questionDocuments);
@@ -183,10 +192,13 @@ const createAssessment = async (req, res) => {
       success: true,
       message: "Exam assessment updated successfully",
     });
-
   } catch (error) {
-    console.error("Error during exam creation:", error);
-    return res.status(500).json({ success: false, message: "Internal server error." });
+    console.error("🚨 Unexpected Error:", error.message || error);
+
+    return res.status(500).json({
+      success: false,
+      message: "An unexpected error occurred. Please try again later.",
+    });
   }
 };
 

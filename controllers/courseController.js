@@ -60,7 +60,7 @@ const getCoursesByUserId = async (req, res) => {
     }
 
     if (userDetails.role === "super_admin" || userDetails.role === "admin") {
-      const courses = await Course.find();
+      const courses = await CourseSchema.find();
       return res.status(200).json(courses);
     }
 
@@ -139,7 +139,7 @@ const getAllLearnersByCourse = async (req, res) => {
   const { id } = req.params;
 
   try {
-    
+
     if (!mongoIdVerification(id)) {
       return res.status(400).json({ message: "Invalid course ID." });
     }

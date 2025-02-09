@@ -18,8 +18,6 @@ const gradeRangeRoutes = require('./routes/gradeRangeRoutes.js')
 const assignedAssessmentRoutes = require('./routes/assignAssessmentRoutes')
 const initialUser = require('./services/initialUser');
 
-
-// Initialize Express app
 // Initialize Express app
 const app = express();
 const server = http.createServer(app);
