@@ -151,6 +151,9 @@ const getStudentAnswerResponse = async (req, res) => {
             question_id: { $in: questions.map(q => q._id) }
         })
 
+        // 🔍 Fetch student details
+        const student = await User.findById(user_Id).select("name email");
+
         // 🛠️ Merge questions and student answers
         const mergedData = questions.map(question => {
             const answer = studentAnswers.find(ans => ans.question_id.toString() === question._id.toString());
@@ -168,6 +171,7 @@ const getStudentAnswerResponse = async (req, res) => {
         });
 
         return res.status(200).json({
+            student_name: student.name,
             assessment,
             studentResponses: mergedData
         });
