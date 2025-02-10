@@ -155,7 +155,9 @@ const udpateAssignedAssessment = async (req, res) => {
 
         // Send Data to AI for Evaluation (Assume `evaluateByAI` is an async function)
         const aiEvaluations = await evaluateByAI(evaluationData);
-        // // // Update Student Answers with AI Evaluation
+
+        // Update Student Answers with AI Evaluation
+
         const updatePromises = studentAnswers.map((answer, index) => {
             const { gemini_score, feedback, sbert_score, minilm_score, labse_score } = aiEvaluations[index];
             return StudentAnswer.findByIdAndUpdate(answer._id, {

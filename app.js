@@ -38,9 +38,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/courseware', coursewareRoutes);
 app.use('/api/grades', gradeRoutes);
 app.use('/api/grade-ranges', gradeRangeRoutes);
-app.use('/api/assigned-assessments', assignedAssessmentRoutes)
-app.use('/api/assessors', assessorRoutes)
-app.use('/api/student-answers', studentAnswerRoutes)
+app.use('/api/assigned-assessments', assignedAssessmentRoutes);
+app.use('/api/assessors', assessorRoutes);
+app.use('/api/student-answers', studentAnswerRoutes);
 
 // Home route for testing the server
 app.get('/', (req, res) => {
