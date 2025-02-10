@@ -257,10 +257,29 @@ const getStudentAnswerResponse = async (req, res) => {
     }
 };
 
+const getAIScoreReport = async (req, res) => {
+    const { user_id, question_id } = req.query;
+
+    try {
+
+        if (!mongoIdVerification(user_id) || !mongoIdVerification(question_id)) {
+            return res.status(400).json({ message: "Invalid user ID or question ID." });
+        }
+
+        const aiScoreReport = await StudentAnswer.findOne({ user_id: user_id, question_id: question_id })
+
+        return res.status(200).json({ aiScoreReport: aiScoreReport });
+    }
+    catch (error) {
+        return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
 
 module.exports = {
     getStudentAndAssessmentDetails,
     getStudentScore,
-    getStudentAnswerResponse
+    getStudentAnswerResponse,
+    getAIScoreReport
 }
 

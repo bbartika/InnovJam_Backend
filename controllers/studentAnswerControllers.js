@@ -73,6 +73,34 @@ const updateStudentAnswer = async (req, res) => {
     }
 };
 
+const feebackByAssessor = async (req, res) => {
+    const { user_id, question_id } = req.query;
+    const { feedback } = req.body;
+
+    try {
+        if (!mongoIdVerification(user_id) || !mongoIdVerification(question_id)) {
+            return res.status(400).json({ message: "Invalid user ID or question ID." });
+        }
+
+        const studentAnswer = await StudentAnswer.findOne({ user_id: user_id, question_id: question_id });
+
+        if (!studentAnswer) {
+            return res.status(404).json({ message: "Student answer not found." });
+        }
+
+        studentAnswer.human_assess_remarks = feedback;
+        studentAnswer.isMarked = true;
+
+        await studentAnswer.save();
+
+        return res.status(200).json({ message: "Feedback saved successfully!" });
+
+    }
+    catch (error) {
+        return res.status(500).json({ success: false, message: "Internal server error." });
+    }
+}
+
 // 📌 Get all student answers
 const getAllStudentAnswers = async (req, res) => {
     try {
@@ -145,5 +173,6 @@ module.exports = {
     updateStudentAnswer,
     getAllStudentAnswers,
     getStudentAnswerById,
-    getStudentAnswerByQuestionId
+    getStudentAnswerByQuestionId,
+    feebackByAssessor
 };
