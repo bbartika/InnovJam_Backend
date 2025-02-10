@@ -6,6 +6,7 @@ const Question = require('../Model/QuestionModel');
 const AssignAssessment = require('../Model/assignAssessmentSchema');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
+
 // const uploadToAiApi = async (content) => {
 //   try {
 //     console.log("Sending data to AI...");
@@ -274,6 +275,10 @@ const getQuestionsForAssessment = async (req, res) => {
 
   try {
 
+    if (!mongoIdVerification(userId)) {
+      return res.status(400).json({ message: "Invalid  user ID." });
+    }
+
     const assessment = await Assessment.findById(id)
 
     if (!assessment) {
@@ -292,7 +297,7 @@ const getQuestionsForAssessment = async (req, res) => {
     return res.status(200).json({
       success: true,
       assigned,
-      assessmentdata,
+      assessmentdata
     });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });

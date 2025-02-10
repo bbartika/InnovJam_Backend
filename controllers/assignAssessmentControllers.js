@@ -2,7 +2,10 @@ const AssignAssessment = require('../Model/assignAssessmentSchema');
 const User = require('../Model/UserModel')
 const CourseSchema = require('../Model/CourseSchema_model');
 const Assessment = require("../Model/assessment_model");
-const mongoIdVerification = require('../services/mongoIdValidation')
+const Question = require('../Model/QuestionModel');
+const StudentAnswer = require('../Model/studentAnswer');
+const evaluateByAI = require('./evaluationByAi');
+const mongoIdVerification = require('../services/mongoIdValidation');
 
 const assignAssessment = async (req, res) => {
     const { assessmentId } = req.query;
@@ -128,7 +131,49 @@ const udpateAssignedAssessment = async (req, res) => {
             return res.status(404).json({ message: "Assigned assessment not found" });
         }
 
-        return res.status(200).json({ message: "Assigned assessment updated", updatedAssignment });
+        // Get Assessment and Questions
+        const assessment = await Assessment.findById(updatedAssignment.assessmentId);
+        const questions = await Question.find({ assessmentId: assessment._id });
+
+        // Fetch Student Answers
+        const studentAnswers = await StudentAnswer.find({
+            user_id: updatedAssignment.userId,
+            question_id: { $in: questions.map(q => q._id) }
+        });
+
+        // Prepare Data for AI Evaluation
+        const evaluationData = studentAnswers.map(answer => {
+            const question = questions.find(q => q._id.equals(answer.question_id));
+
+            return {
+                suggested_answer: Array.isArray(question?.suggested_answer)
+                    ? question.suggested_answer.join(" ")
+                    : (question?.suggested_answer || ""),
+                student_answer: answer.student_answer?.trim() || ""
+            };
+        }).filter(data => data.suggested_answer && data.student_answer);
+
+        // Send Data to AI for Evaluation (Assume `evaluateByAI` is an async function)
+        const aiEvaluations = await evaluateByAI(evaluationData);
+        // // // Update Student Answers with AI Evaluation
+        const updatePromises = studentAnswers.map((answer, index) => {
+            const { gemini_score, feedback, sbert_score, minilm_score, labse_score } = aiEvaluations[index];
+            return StudentAnswer.findByIdAndUpdate(answer._id, {
+                gemini_score,
+                feedback,
+                sbert_score,
+                minilm_score,
+                labse_score
+            }, { new: true });
+        });
+
+        await Promise.all(updatePromises);
+
+        return res.status(200).json({
+            message: "Assigned assessment updated and student answers evaluated",
+            updatedAssignment
+        });
+
     } catch (error) {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }

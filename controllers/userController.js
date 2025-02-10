@@ -1,4 +1,5 @@
 const User = require("../Model/UserModel");
+const Course = require('../Model/CourseSchema_model');
 const bcrypt = require("bcrypt");
 
 const createUser = async (req, res) => {
@@ -47,6 +48,12 @@ const createUser = async (req, res) => {
       course_code
     });
 
+
+    if (role === "learner") {
+      const course = await Course.findOne({ course_code: course_code });
+      course.total_enrollment += 1;
+      await course.save();
+    }
 
     await newUser.save();
 
@@ -127,6 +134,12 @@ const createUsers = async (req, res) => {
           course_code
         });
 
+        if (role === "learner") {
+          const course = await Course.findOne({ course_code: course_code });
+          course.total_enrollment += 1;
+          await course.save();
+        }
+
         // Save the user
         await newUser.save();
 
@@ -184,13 +197,28 @@ const updateUser = async (req, res) => {
   const { name, email, password, role, course_code } = req.body;
 
   try {
-
-    // If the password is provided, validate its length
-    if (password && password.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters long." });
+    // ✅ Validate ID
+    if (!mongoIdVerification(id)) {
+      return res.status(400).json({ message: "Invalid user ID." });
     }
 
-    // If email is provided, validate its format and uniqueness
+    // ✅ Fetch User
+    const existingUser = await User.findById(id);
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // ✅ Validate Role
+    if (role && !['admin', 'learner', 'assessor', 'trainer'].includes(role)) {
+      return res.status(400).json({ message: "Invalid role." });
+    }
+
+    // ✅ Ensure Course Code is Required for Non-Admins
+    if (role && role !== 'admin' && role !== 'super_admin' && !course_code) {
+      return res.status(400).json({ message: "Please provide course code." });
+    }
+
+    // ✅ Validate Email Uniqueness
     if (email) {
       if (!email.includes("@")) {
         return res.status(400).json({ message: "Invalid email format." });
@@ -202,28 +230,43 @@ const updateUser = async (req, res) => {
       }
     }
 
-    // If the password is being updated, hash it
-    let hashedPassword = password;
+    // ✅ Validate Password (if updating)
+    let hashedPassword = existingUser.password;
     if (password) {
+      if (password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters long." });
+      }
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
-    // Create an object to hold the update fields (only the ones provided)
-    const updateFields = {};
-    if (name) updateFields.name = name;
-    if (email) updateFields.email = email;
-    if (password) updateFields.password = hashedPassword;
-    if (role) updateFields.role = role;
-    if (course_code) updateFields.course_code = course_code;
-
-    // Find the user by ID and update the fields
-    const updatedUser = await User.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found." });
+    // ✅ Update Enrollment Count if Role Changes to/from Learner
+    if (role && role === "learner" && existingUser.role !== "learner") {
+      const course = await Course.findOne({ course_code });
+      if (course) {
+        course.total_enrollment += 1;
+        await course.save();
+      }
+    } else if (role && existingUser.role === "learner" && role !== "learner") {
+      const course = await Course.findOne({ course_code: existingUser.course_code });
+      if (course) {
+        course.total_enrollment -= 1;
+        await course.save();
+      }
     }
 
-    res.status(200).json({
+    // ✅ Prepare Update Fields
+    const updateFields = {
+      ...(name && { name }),
+      ...(email && { email }),
+      ...(password && { password: hashedPassword }),
+      ...(role && { role }),
+      ...(course_code && { course_code })
+    };
+
+    // ✅ Update User
+    const updatedUser = await User.findByIdAndUpdate(id, { $set: updateFields }, { new: true });
+
+    return res.status(200).json({
       message: "User updated successfully!",
       user: {
         name: updatedUser.name,
@@ -237,28 +280,47 @@ const updateUser = async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error." });
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
 const removeUser = async (req, res) => {
   const { id } = req.params;
+
   try {
-    const user = await User.findByIdAndDelete(id);
+    // ✅ Validate ID
+    if (!mongoIdVerification(id)) {
+      return res.status(400).json({ message: "Invalid user ID." });
+    }
+
+    // ✅ Fetch User First (Before Deleting)
+    const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
+    // ✅ Prevent Super Admin from Being Deleted
     if (user.role === 'super_admin') {
-      return res.status(400).json({ message: "admin cannot be deleted." });
+      return res.status(400).json({ message: "Super admin cannot be deleted." });
     }
 
-    res.status(200).json({ message: "User deleted successfully!" });
+    // ✅ Update Course Enrollment if User is a Learner
+    if (user.role === "learner" && user.course_code) {
+      const course = await Course.findOne({ course_code: user.course_code });
+      if (course) {
+        course.total_enrollment -= 1;
+        await course.save();
+      }
+    }
 
-  }
-  catch (error) {
+    // ✅ Delete User
+    await User.findByIdAndDelete(id);
+
+    return res.status(200).json({ message: "User deleted successfully!" });
+
+  } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error." });
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
@@ -307,9 +369,6 @@ const getAllUsers = async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 };
-
-
-
 
 module.exports = {
   createUsers,
