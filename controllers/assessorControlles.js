@@ -213,20 +213,50 @@ const getStudentAnswerResponse = async (req, res) => {
         }
 
         // 🔍 Check if the assessment exists
-        const assessment = await Assessment.findById(assessment_id);
+        const assessment = await Assessment.findById(assessment_id).select("-assessmentId");
         if (!assessment) {
             return res.status(404).json({ message: "Assessment not found" });
         }
 
+        // 🔍 Fetch all questions for the assessment
         const questions = await Question.find({ assessmentId: assessment_id })
+        if (!questions || questions.length === 0) {
+            return res.status(404).json({ message: "No questions found for this assessment." });
+        }
 
-        return res.status(200).json({ assessment, questions });
+        // 🔍 Fetch the student's answers for these questions
+        const studentAnswers = await StudentAnswer.find({
+            user_id: user_Id,
+            question_id: { $in: questions.map(q => q._id) }
+        })
 
-    }
-    catch (error) {
+        // 🛠️ Merge questions and student answers
+        const mergedData = questions.map(question => {
+            const answer = studentAnswers.find(ans => ans.question_id.toString() === question._id.toString());
+
+            return {
+                question_id: question._id,
+                question_number: question.question_number,
+                question_instruction: question.question_instruction,
+                question: question.question,
+                suggested_answer: question.suggested_answer,
+                student_answer: answer ? answer.student_answer : null,
+                user_Id: answer.user_id,
+                feedback: answer ? answer.feedback : null,
+            };
+        });
+
+        return res.status(200).json({
+            assessment,
+            studentResponses: mergedData
+        });
+
+    } catch (error) {
+        console.error(error);
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
-}
+};
+
 
 module.exports = {
     getStudentAndAssessmentDetails,
