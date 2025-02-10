@@ -4,8 +4,7 @@ const File = require("../Model/file");
 const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
 const AssignAssessment = require('../Model/assignAssessmentSchema');
-const mongoIdVerification = require('../services/mongoIdValidation')
-
+const mongoIdVerification = require('../services/mongoIdValidation');
 
 // const uploadToAiApi = async (content) => {
 //   try {
@@ -229,16 +228,17 @@ const getAssessmentById = async (req, res) => {
   }
 }
 
+
 const getQuestionsBasedOnAssessmentId = async (req, res) => {
   const { id } = req.params;
   try {
-
     const questions = await Question.find({ assessmentId: id });
     return res.status(200).json(questions);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 }
+
 
 const removeAssessment = async (req, res) => {
   const { id } = req.params;
@@ -270,6 +270,7 @@ const removeAssessment = async (req, res) => {
 
 const getQuestionsForAssessment = async (req, res) => {
   const { id } = req.params;
+  const { userId } = req.query
 
   try {
 
@@ -279,6 +280,8 @@ const getQuestionsForAssessment = async (req, res) => {
       return res.status(404).json({ message: "Assessment not found" });
     }
 
+    const assigned = await AssignAssessment.findOne({ userId, assessmentId: id })
+
     const questions = await Question.find({ assessmentId: id }).select("-suggested_answer");
 
     const assessmentdata = {
@@ -286,7 +289,11 @@ const getQuestionsForAssessment = async (req, res) => {
       questions,
     };
 
-    return res.status(200).json(assessmentdata);
+    return res.status(200).json({
+      success: true,
+      assigned,
+      assessmentdata,
+    });
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
