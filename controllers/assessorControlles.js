@@ -125,13 +125,13 @@ const getStudentScore = async (req, res) => {
 
             console.log(totalScore + " TOTAL SCORE")
 
-            if (totalScore === undefined) return 'No Grade'; // Handle missing scores
+            if (totalScore === undefined) return 'No Grade';
 
             const matchedRange = gradeRanges.find(range =>
                 totalScore >= range.startRange && totalScore <= range.endRange
             );
 
-            return matchedRange ? matchedRange.label : 'No Grade'; // Default if no range matches
+            return matchedRange ? matchedRange.label : 'No Grade';
         };
 
         // Map student scores with student details, including status
@@ -143,7 +143,7 @@ const getStudentScore = async (req, res) => {
             grade_label: getGradeLabel(student._id, studentScores, gradeRanges),
             attempted_questions: studentScores[student._id]?.attemptedQuestions || 0,
             total_questions: questions.length || 0,
-            status: assignedMap[student._id.toString()] || "Unknown" // Default status if missing
+            status: assignedMap[student._id.toString()] || "Unknown"
         }));
 
         return res.status(200).json({ assessment, result });
