@@ -4,6 +4,8 @@ const Assigned = require('../Model/assignAssessmentSchema');
 const User = require('../Model/UserModel');
 const StudentAnswer = require('../Model/studentAnswer');
 const Question = require('../Model/QuestionModel');
+const Grade = require('../Model/gradeModel');
+const GradeRange = require("../Model/gradeRangeModel");
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 const getStudentAndAssessmentDetails = async (req, res) => {
@@ -64,6 +66,8 @@ const getStudentScore = async (req, res) => {
         if (!course_details) {
             return res.status(404).json({ message: "Course not found" });
         }
+
+        const gradeRanges = await GradeRange.find({ grade_id: course_details.grade_id });
 
         const questions = await Question.find({ assessmentId: assessment_id }).select("_id");
         if (!questions || questions.length === 0) {
