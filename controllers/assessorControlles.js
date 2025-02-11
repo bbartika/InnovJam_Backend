@@ -110,13 +110,23 @@ const getStudentScore = async (req, res) => {
         // Fetch student details
         const students = await User.find({ _id: { $in: studentIds } }).select("name email");
 
+        const getGradeLabel = (studentId, studentScores, gradeRanges) => {
+            const totalScore = studentScores[studentId]?.totalScore;
+            if (totalScore === undefined) return 'No Grade'; // Handle missing scores
+
+            const matchedRange = gradeRanges.find(range =>
+                totalScore >= range.startRange && totalScore <= range.endRange
+            );
+            return matchedRange ? matchedRange.label : 'No Grade'; // Default if no range matches
+        };
+
         // Map student scores with student details
         const result = students.map(student => ({
             user_id: student._id,
             student_name: student.name,
             student_email: student.email,
             course_total_marks: course_details.total_marks,
-            total_score: studentScores[student._id]?.totalScore || 0,
+            grade_label: getGradeLabel(student._id, studentScores, gradeRanges),
             attempted_questions: studentScores[student._id]?.attemptedQuestions || 0,
             total_questions: questions.length || 0
         }));

@@ -80,14 +80,14 @@ const reassignAssessment = async (req, res) => {
         const assignment = await AssignAssessment.findOne({ userId, assessmentId });
 
         if (!assignment) {
-            return res.status(404).json({ message: "Assignment not found for the user." });
+            return res.status(404).json({ message: "Assignment not found for the user." ,  status : false });
         }
 
         // 🔄 Update only the status to "pending"
         assignment.status = "in_progress";
         await assignment.save();
 
-        return res.status(200).json({ message: "Assessment reassigned successfully", assignment });
+        return res.status(200).json({ message: "Assessment reassigned successfully", assignment , status : true });
     } catch (error) {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }

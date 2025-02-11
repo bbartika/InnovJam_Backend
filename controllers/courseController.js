@@ -6,7 +6,9 @@ const createCourse = async (req, res) => {
   const { course_name, grade_id, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
   try {
 
-    if (mongoIdVerification(grade_id)) {
+    console.log(grade_id + " GRADE")
+
+    if (!mongoIdVerification(grade_id)) {
       return res.status(400).json({ message: "Invalid grade ID." });
     }
 
@@ -96,7 +98,7 @@ const getCourseById = async (req, res) => {
 // Update a course
 const updateCourse = async (req, res) => {
   try {
-    const { course_name, grade_id,course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
+    const { course_name, grade_id, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
 
     if (mongoIdVerification(grade_id)) {
       return res.status(400).json({ message: "Invalid grade ID." });
