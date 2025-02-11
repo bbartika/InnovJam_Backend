@@ -122,11 +122,15 @@ const getStudentScore = async (req, res) => {
 
         const getGradeLabel = (studentId, studentScores, gradeRanges) => {
             const totalScore = studentScores[studentId]?.totalScore;
+
+            console.log(totalScore + " TOTAL SCORE")
+
             if (totalScore === undefined) return 'No Grade'; // Handle missing scores
 
             const matchedRange = gradeRanges.find(range =>
                 totalScore >= range.startRange && totalScore <= range.endRange
             );
+
             return matchedRange ? matchedRange.label : 'No Grade'; // Default if no range matches
         };
 
@@ -224,7 +228,6 @@ const getAIScoreReport = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
-
 
 module.exports = {
     getStudentAndAssessmentDetails,
