@@ -6,6 +6,7 @@ const createGradeRange = async (req, res) => {
     const { grade_id, label, startRange, endRange } = req.body;
 
     try {
+
         if (!grade_id || !label || startRange < 0 || !endRange) {
             return res.status(400).json({ error: 'All fields are required' });
         }
@@ -15,11 +16,12 @@ const createGradeRange = async (req, res) => {
         }
 
         const grade = await Grade.findById(grade_id);
+
         if (!grade) {
             return res.status(404).json({ error: 'Grade not found' });
         }
 
-        if (startRange > endRange) {
+        if (+startRange > +endRange) {
             return res.status(400).json({ error: 'Start range cannot be greater than end range' });
         }
 
@@ -34,6 +36,7 @@ const createGradeRange = async (req, res) => {
         res.status(500).json({ message: 'Error creating range', error: error.message });
     }
 };
+
 
 const getGradeRangeByGradeId = async (req, res) => {
     const { grade_id } = req.params;

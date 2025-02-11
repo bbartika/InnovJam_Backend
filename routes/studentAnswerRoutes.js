@@ -9,6 +9,6 @@ router.put('/update/:id', validateObjectIdMiddleware, updateStudentAnswer);
 router.get('/getanswers', getAllStudentAnswers);
 router.get('/getanswerbyquestion', getStudentAnswerByQuestionId);
 router.get('/getanswer/:id', validateObjectIdMiddleware, getStudentAnswerById);
-router.get('/feedbackbyassessor', feebackByAssessor);
+router.put('/feedbackbyassessor', feebackByAssessor);
 
 module.exports = router;

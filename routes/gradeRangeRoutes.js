@@ -5,7 +5,7 @@ const { createGradeRange, getGradeRangeByGradeId, removeGradeRange, updateGradeR
 const validateObjectIdMiddleware = require('../middleware/mongoIdVerification')
 
 router.post('/create', createGradeRange);
-router.get('/getgrade/:grade_id', validateObjectIdMiddleware, getGradeRangeByGradeId);
+router.get('/getgrade/:grade_id', getGradeRangeByGradeId);
 router.put('/update/:id', validateObjectIdMiddleware, updateGradeRange);
 router.delete('/remove/:id', validateObjectIdMiddleware, removeGradeRange);
 

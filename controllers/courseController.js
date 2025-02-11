@@ -3,9 +3,12 @@ const User = require('../Model/UserModel')
 const mongoIdVerification = require('../services/mongoIdValidation')
 
 const createCourse = async (req, res) => {
-  const { course_name, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
+  const { course_name, grade_id, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
   try {
 
+    if (mongoIdVerification(grade_id)) {
+      return res.status(400).json({ message: "Invalid grade ID." });
+    }
 
     if (!course_name || !course_code || !total_marks || !visibility || !startDate || !endDate) {
       return res.status(400).json({ message: "All fields except description and total_marks are required." });
@@ -26,6 +29,7 @@ const createCourse = async (req, res) => {
       visibility,
       total_enrollment,
       startDate,
+      grade_id,
       endDate,
     });
 
@@ -92,7 +96,11 @@ const getCourseById = async (req, res) => {
 // Update a course
 const updateCourse = async (req, res) => {
   try {
-    const { course_name, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
+    const { course_name, grade_id,course_code, description, total_marks, total_enrollment, visibility, startDate, endDate } = req.body;
+
+    if (mongoIdVerification(grade_id)) {
+      return res.status(400).json({ message: "Invalid grade ID." });
+    }
 
     if (!course_name || !course_code || !visibility || !total_marks || !startDate || !endDate) {
       return res.status(400).json({ message: "All fields except description and total_marks are required." });
@@ -108,7 +116,7 @@ const updateCourse = async (req, res) => {
 
     const updatedCourse = await CourseSchema.findByIdAndUpdate(
       req.params.id,
-      { course_name, course_code, description, total_marks, total_enrollment, visibility, startDate, endDate, updatedAt: Date.now() },
+      { course_name, course_code, grade_id, description, total_marks, total_enrollment, visibility, startDate, endDate, updatedAt: Date.now() },
       { new: true }
     );
 
@@ -133,7 +141,6 @@ const deleteCourse = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-
 
 const getAllLearnersByCourse = async (req, res) => {
   const { id } = req.params;
@@ -169,7 +176,6 @@ const getAllLearnersByCourse = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-
 
 module.exports = {
   createCourse,

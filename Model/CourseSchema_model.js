@@ -11,6 +11,11 @@ const CourseSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    grade_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Grade',
+      required: true
+    },
     description: {
       type: String,
       default: null,

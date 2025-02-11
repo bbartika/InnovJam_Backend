@@ -1,4 +1,5 @@
 const Grade = require('../Model/gradeModel');
+const GradeRange = require('../Model/gradeRangeModel');
 
 const createGrade = async (req, res) => {
     try {
@@ -48,6 +49,8 @@ const removeGrade = async (req, res) => {
             return res.status(404).json({ error: 'Grade not found' });
         }
 
+        await GradeRange.deleteMany({ grade_id: id });
+
         res.status(200).json({ message: 'Grade deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
@@ -63,7 +66,6 @@ const getAllGrades = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
 
 const getAllGradesStatusTrue = async (req, res) => {
     try {

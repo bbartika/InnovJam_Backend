@@ -82,6 +82,10 @@ const feebackByAssessor = async (req, res) => {
             return res.status(400).json({ message: "Invalid user ID or question ID." });
         }
 
+        if (!feedback) {
+            return res.status(400).json({ message: "Feedback is required." });
+        }
+
         const studentAnswer = await StudentAnswer.findOne({ user_id: user_id, question_id: question_id });
 
         if (!studentAnswer) {
