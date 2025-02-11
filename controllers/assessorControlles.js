@@ -74,10 +74,20 @@ const getStudentScore = async (req, res) => {
             return res.status(404).json({ message: "Questions not found" });
         }
 
-        const assignedData = await Assigned.find({ assessmentId: assessment_id }).select("userId");
+        const assignedData = await Assigned.find({ assessmentId: assessment_id, status: "completed" }).select("userId status");
+
         if (!assignedData || assignedData.length === 0) {
             return res.status(404).json({ message: "No assigned students found" });
         }
+
+        // Map userId to status
+        const assignedMap = assignedData.reduce((acc, item) => {
+            acc[item.userId.toString()] = item.status;
+            return acc;
+        }, {});
+
+
+        console.log(assignedMap)
 
         // Get student IDs
         const studentIds = assignedData.map(a => a.userId);
@@ -120,7 +130,7 @@ const getStudentScore = async (req, res) => {
             return matchedRange ? matchedRange.label : 'No Grade'; // Default if no range matches
         };
 
-        // Map student scores with student details
+        // Map student scores with student details, including status
         const result = students.map(student => ({
             user_id: student._id,
             student_name: student.name,
@@ -128,7 +138,8 @@ const getStudentScore = async (req, res) => {
             course_total_marks: course_details.total_marks,
             grade_label: getGradeLabel(student._id, studentScores, gradeRanges),
             attempted_questions: studentScores[student._id]?.attemptedQuestions || 0,
-            total_questions: questions.length || 0
+            total_questions: questions.length || 0,
+            status: assignedMap[student._id.toString()] || "Unknown" // Default status if missing
         }));
 
         return res.status(200).json({ assessment, result });

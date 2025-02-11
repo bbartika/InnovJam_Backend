@@ -13,7 +13,7 @@ const {
 const validateObjectIdMiddleware = require('../middleware/mongoIdVerification');
 
 router.post('/assignassessment', assignAssessment);
-router.post('/reassignassessment', reassignAssessment);
+router.put('/reassignassessment', reassignAssessment);
 router.get('/get-assessmentbycourse', getAssignedAssessmentsByUserIdAndCourseId);
 router.get('/get-assessment', getAssignAssessmentByUserIdAndAssessmentId);
 router.get('/get-assessment-by-assessmentId/:assessmentId', getAllAssignedAssessmentByAssessmentId);
