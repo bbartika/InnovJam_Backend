@@ -11,6 +11,10 @@ const studentAnswerSchema = new mongoose.Schema({
         ref: 'Question',
         required: true
     },
+    status: {
+        type: Number,
+        default: 0
+    },
     student_answer: {
         type: String,
         required: true

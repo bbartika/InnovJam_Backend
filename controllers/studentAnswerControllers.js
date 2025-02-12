@@ -31,6 +31,7 @@ const studentAnswerResponse = async (req, res) => {
             const newAnswer = new StudentAnswer({
                 user_id,
                 question_id,
+                status: 1,
                 student_answer,
             });
 

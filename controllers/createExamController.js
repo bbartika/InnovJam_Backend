@@ -7,100 +7,8 @@ const AssignAssessment = require('../Model/assignAssessmentSchema');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 
-// const uploadToAiApi = async (content) => {
-//   try {
-//     console.log("Sending data to AI...");
-//     const formData = new FormData();
-//     formData.append("content", content);
-
-//     const response = await axios.post(`${process.env.AI_SERVER_URL}/extract/`, formData);
-//     console.log("Response from AI API received:", response.data);
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error sending file to AI API:", error);
-//     throw new Error("AI processing failed.");
-//   }
-// };
-
-// exports.createExam = async (req, res) => {
-
-//   const {
-//     course_id,
-//     course_name,
-//     assessmentName,
-//     fileId
-//   } = req.body;
-
-
-//   if (!course_id || !course_name) {
-//     return res.status(400).json({
-//       success: false,
-//       message: "Missing course_id or course_name",
-//     });
-//   }
-
-//   try {
-
-
-//     const file = await File.findById(fileId);
-
-//     if (!file) {
-//       return res.status(404).json({ error: "File not found" });
-//     }
-
-//     // Process file with AI and save results
-//     const aiResponse = await uploadToAiApi(file.content);
-//     console.log("AI response:", aiResponse);
-
-//     const {
-//       assessment_type,
-//       case_study_context,
-//       questions_and_answers
-//     } = aiResponse;
-
-//     const enrichedQuestions = questions_and_answers?.map((question) => ({
-//       ...question,
-//       student_answer: "",
-//       sbert_score: null,
-//       roberta_score: null,
-//       distilroberta_score: null,
-//       t5_score: null,
-//       use_score: null,
-//       gpt_score: null,
-//       minilm_score: null,
-//       labse_score: null,
-//       gemini_score: null,
-//       longformer_score: null,
-//       feedback: "",
-//       human_assess_remarks: null,
-//       isCompetent: false,
-//     }));
-
-//     const newAssessment = new Assessment({
-//       assessment_name: assessmentName,
-//       assessment_type,
-//       case_study_context,
-//       courseId: course_id,
-//       course_name: course_name,
-//       data: enrichedQuestions,
-//     });
-
-//     console.log("New assessment created:", newAssessment);
-
-//     await newAssessment.save();
-
-//     return res.status(200).json({
-//       success: true,
-//       message: "Exam created successfully",
-//       assessment: newAssessment,
-//     });
-//   } catch (error) {
-//     console.error("Error during exam creation:", error);
-//   }
-// };
-
-
 const uploadToAiApi = async (content, retries = 3) => {
+
   const formData = new FormData();
   formData.append("content", content);
 
@@ -112,6 +20,7 @@ const uploadToAiApi = async (content, retries = 3) => {
         formData,
         { timeout: 600000 }
       );
+      console.log("Response from AI API received:", response.data);
       return response.data;
     } catch (error) {
       console.error(`❌ Attempt ${attempt} failed:`, error.message || error);
@@ -122,10 +31,10 @@ const uploadToAiApi = async (content, retries = 3) => {
 
 const createAssessment = async (req, res) => {
   try {
-    const { course_id, assessment_name, fileId } = req.body;
+    const { course_id, assessment_name, fileId, grade_id } = req.body;
 
-    if (!mongoIdVerification(course_id)) {
-      return res.status(400).json({ message: "Invalid course ID." });
+    if (!mongoIdVerification(course_id) || !mongoIdVerification(grade_id)) {
+      return res.status(400).json({ message: "Invalid course ID or grade ID." });
     }
 
     if (!mongoIdVerification(fileId)) {
@@ -149,8 +58,11 @@ const createAssessment = async (req, res) => {
       return res.status(500).json({ success: false, message: aiResponse.error });
     }
 
-    console.log(aiResponse);
     const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration } = aiResponse;
+
+    if (!assessment_type || !case_study_context || !assessment_instruction || !questions_and_answers) {
+      return res.status(400).json({ success: false, message: "Invalid AI response. Please try again." });
+    }
 
     // 🔍 Check if an assessment already exists
     let existingAssessment = await Assessment.findOne({ courseId: course_id, assessment_file_id: fileId });
@@ -162,6 +74,7 @@ const createAssessment = async (req, res) => {
       existingAssessment.assessment_type = assessment_type;
       existingAssessment.case_study_context = case_study_context;
       existingAssessment.duration = duration || "";
+      existingAssessment.grade_id = grade_id || "";
       existingAssessment.assessment_instruction = assessment_instruction || [];
 
       await existingAssessment.save();
@@ -171,6 +84,7 @@ const createAssessment = async (req, res) => {
         assessment_type,
         case_study_context,
         duration: duration || "",
+        grade_id: grade_id,
         assessment_instruction: assessment_instruction || [],
         courseId: course_id,
         assessment_file_id: fileId,
@@ -228,7 +142,6 @@ const getAssessmentById = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 }
-
 
 const getQuestionsBasedOnAssessmentId = async (req, res) => {
   const { id } = req.params;

@@ -4,7 +4,6 @@ const Assigned = require('../Model/assignAssessmentSchema');
 const User = require('../Model/UserModel');
 const StudentAnswer = require('../Model/studentAnswer');
 const Question = require('../Model/QuestionModel');
-const Grade = require('../Model/gradeModel');
 const GradeRange = require("../Model/gradeRangeModel");
 const mongoIdVerification = require('../services/mongoIdValidation');
 
@@ -68,8 +67,6 @@ const getStudentScore = async (req, res) => {
             return res.status(404).json({ message: "Course not found" });
         }
 
-        const gradeRanges = await GradeRange.find({ grade_id: course_details.grade_id });
-
         const questions = await Question.find({ assessmentId: assessment_id }).select("_id");
         if (!questions || questions.length === 0) {
             return res.status(404).json({ message: "Questions not found" });
@@ -80,12 +77,6 @@ const getStudentScore = async (req, res) => {
         if (!assignedData || assignedData.length === 0) {
             return res.status(404).json({ message: "No assigned students found" });
         }
-
-        // Map userId to status
-        const assignedMap = assignedData.reduce((acc, item) => {
-            acc[item.userId.toString()] = item.status;
-            return acc;
-        }, {});
 
         // Get student IDs
         const studentIds = assignedData.map(a => a.userId);
@@ -104,11 +95,9 @@ const getStudentScore = async (req, res) => {
         const studentScores = {};
         studentAnswers.forEach(answer => {
             const userId = answer.user_id.toString();
-
             if (!studentScores[userId]) {
                 studentScores[userId] = { totalScore: 0, attemptedQuestions: 0, totalQuestions: questions.length };
             }
-
             if (answer.gemini_score !== null) {
                 studentScores[userId].totalScore += answer.gemini_score || 0;
                 studentScores[userId].attemptedQuestions += 1;
@@ -118,28 +107,12 @@ const getStudentScore = async (req, res) => {
         // Fetch student details
         const students = await User.find({ _id: { $in: studentIds } }).select("name email");
 
-        const getGradeLabel = (studentId, studentScores, gradeRanges) => {
-            const totalScore = studentScores[studentId]?.totalScore;
-
-            if (totalScore === undefined) return 'No Grade';
-
-            const matchedRange = gradeRanges.find(range =>
-                totalScore >= range.startRange && totalScore <= range.endRange
-            );
-
-            return matchedRange ? matchedRange.label : 'No Grade';
-        };
-
         // Map student scores with student details, including status
         const result = students.map(student => ({
             user_id: student._id,
             student_name: student.name,
             student_email: student.email,
-            course_total_marks: course_details.total_marks,
-            grade_label: getGradeLabel(student._id, studentScores, gradeRanges),
-            attempted_questions: studentScores[student._id]?.attemptedQuestions || 0,
-            total_questions: questions.length || 0,
-            status: assignedMap[student._id.toString()] || "Unknown"
+            total_questions: questions.length,
         }));
 
         return res.status(200).json({ assessment, result });
@@ -169,6 +142,8 @@ const getStudentAnswerResponse = async (req, res) => {
         if (!questions || questions.length === 0) {
             return res.status(404).json({ message: "No questions found for this assessment." });
         }
+
+        const grades = await GradeRange.find({ grade_id: assessment.grade_id });
 
         // 🔍 Fetch the student's answers for these questions
         const studentAnswers = await StudentAnswer.find({

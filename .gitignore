@@ -8,7 +8,13 @@ files
 
 # MONGO_URL="mongodb+srv://devmalya2025:debmalya1234@cluster2.ablms.mongodb.net"
 # MONGO_URL=mongodb+srv://abhishekomr077:abhishekomr07@cluster0.g9j16.mongodb.net/innovjam
-# AI_SERVER_URL=http://192.168.1.59:8000
+# MONGO_URL=mongodb+srv://abhishekomr077:abhishekomr07@cluster0.g9j16.mongodb.net/innovjamV2
+# AI_SERVER_URL=http://192.168.1.57:8000
+# AI_EVALUATION_SERVER_URL=http://192.168.1.57:7100
+# AI_SERVER_URL=http://47.130.55.18:8000
+# AI_EVALUATION_SERVER_URL=http://47.130.55.18:7100
+# 
+# AI_SERVER_URL=http://175.41.151.78:8000
 # PORT=7000
 # JWT_SECRET_KEY="465b8af06af27fe6780bee7c4c5619d3066d781a1aae7d834da08daa8b42d9cd63b8ff89ea2d542dd52ebf268f7e0e51ae969fbd051f4ed5cb22166300545bf1"
 # S_ADMIN_EMAIL=superadmin@gmail.com

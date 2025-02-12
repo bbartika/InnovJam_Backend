@@ -197,10 +197,6 @@ const updateUser = async (req, res) => {
   const { name, email, password, role, course_code } = req.body;
 
   try {
-    // ✅ Validate ID
-    if (!mongoIdVerification(id)) {
-      return res.status(400).json({ message: "Invalid user ID." });
-    }
 
     // ✅ Fetch User
     const existingUser = await User.findById(id);
@@ -288,10 +284,6 @@ const removeUser = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // ✅ Validate ID
-    if (!mongoIdVerification(id)) {
-      return res.status(400).json({ message: "Invalid user ID." });
-    }
 
     // ✅ Fetch User First (Before Deleting)
     const user = await User.findById(id);
