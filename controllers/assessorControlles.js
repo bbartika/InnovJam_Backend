@@ -63,6 +63,7 @@ const getStudentScore = async (req, res) => {
         }
 
         const course_details = await Course.findById(assessment.courseId);
+
         if (!course_details) {
             return res.status(404).json({ message: "Course not found" });
         }
@@ -85,9 +86,6 @@ const getStudentScore = async (req, res) => {
             acc[item.userId.toString()] = item.status;
             return acc;
         }, {});
-
-
-        console.log(assignedMap)
 
         // Get student IDs
         const studentIds = assignedData.map(a => a.userId);
@@ -122,8 +120,6 @@ const getStudentScore = async (req, res) => {
 
         const getGradeLabel = (studentId, studentScores, gradeRanges) => {
             const totalScore = studentScores[studentId]?.totalScore;
-
-            console.log(totalScore + " TOTAL SCORE")
 
             if (totalScore === undefined) return 'No Grade';
 
@@ -194,7 +190,7 @@ const getStudentAnswerResponse = async (req, res) => {
                 question: question.question,
                 suggested_answer: question.suggested_answer,
                 student_answer: answer ? answer.student_answer : null,
-                user_Id: answer.user_id,
+                user_Id: answer ? answer.user_id.toString() : null,
                 feedback: answer ? answer.feedback : null,
             };
         });
