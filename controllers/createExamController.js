@@ -8,7 +8,6 @@ const Grade = require('../Model/gradeModel');
 const AiModel = require('../Model/AIModel');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
-
 const uploadToAiApi = async (content, retries = 3) => {
 
   const formData = new FormData();
@@ -32,8 +31,8 @@ const uploadToAiApi = async (content, retries = 3) => {
 };
 
 const createAssessment = async (req, res) => {
+  const { course_id, assessment_name, fileId, grade_id, ai_model_id } = req.body;
   try {
-    const { course_id, assessment_name, fileId, grade_id, ai_model_id } = req.body;
 
     if (!mongoIdVerification(course_id) || !mongoIdVerification(grade_id) || !mongoIdVerification(ai_model_id)) {
       return res.status(400).json({ message: "Invalid course ID or grade ID or AI model ID." });
