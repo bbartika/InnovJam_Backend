@@ -11,6 +11,11 @@ const assessmentSchema = new mongoose.Schema({
     ref: 'Grade',
     required: true
   },
+  ai_model_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'AI',
+    required: true
+  },
   assessment_type: {
     type: String,
     required: true

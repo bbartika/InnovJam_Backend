@@ -4,6 +4,8 @@ const File = require("../Model/file");
 const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
 const AssignAssessment = require('../Model/assignAssessmentSchema');
+const Grade = require('../Model/gradeModel');
+const AiModel = require('../Model/AIModel');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 
@@ -31,10 +33,10 @@ const uploadToAiApi = async (content, retries = 3) => {
 
 const createAssessment = async (req, res) => {
   try {
-    const { course_id, assessment_name, fileId, grade_id } = req.body;
+    const { course_id, assessment_name, fileId, grade_id, ai_model_id } = req.body;
 
-    if (!mongoIdVerification(course_id) || !mongoIdVerification(grade_id)) {
-      return res.status(400).json({ message: "Invalid course ID or grade ID." });
+    if (!mongoIdVerification(course_id) || !mongoIdVerification(grade_id) || !mongoIdVerification(ai_model_id)) {
+      return res.status(400).json({ message: "Invalid course ID or grade ID or AI model ID." });
     }
 
     if (!mongoIdVerification(fileId)) {
@@ -43,6 +45,25 @@ const createAssessment = async (req, res) => {
 
     if (!assessment_name) {
       return res.status(400).json({ message: "Assessment name is required." });
+    }
+
+
+    // 🔍 Check if the course exists
+
+    const course = await CourseSchema.findById(course_id);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const grade = await Grade.findById(grade_id);
+
+    if (!grade) {
+      return res.status(404).json({ error: "Grade not found" });
+    }
+
+    const aiModel = await AiModel.findById(ai_model_id);
+    if (!aiModel) {
+      return res.status(404).json({ error: "AI model not found" });
     }
 
     const file = await File.findById(fileId);
@@ -74,7 +95,8 @@ const createAssessment = async (req, res) => {
       existingAssessment.assessment_type = assessment_type;
       existingAssessment.case_study_context = case_study_context;
       existingAssessment.duration = duration || "";
-      existingAssessment.grade_id = grade_id || "";
+      existingAssessment.grade_id = grade_id;
+      existingAssessment.ai_model_id = ai_model_id;
       existingAssessment.assessment_instruction = assessment_instruction || [];
 
       await existingAssessment.save();
@@ -85,6 +107,7 @@ const createAssessment = async (req, res) => {
         case_study_context,
         duration: duration || "",
         grade_id: grade_id,
+        ai_model_id: ai_model_id,
         assessment_instruction: assessment_instruction || [],
         courseId: course_id,
         assessment_file_id: fileId,
@@ -100,6 +123,8 @@ const createAssessment = async (req, res) => {
       question: q.question,
       question_instruction: q.question_instruction || "",
       suggested_answer: q.suggested_answer || [],
+      comparison_instruction: q.comparison_instruction || "",
+      comparison_count: q.comparison_count || 0
     }));
 
     await Question.insertMany(questionDocuments);
@@ -108,6 +133,7 @@ const createAssessment = async (req, res) => {
       success: true,
       message: "Exam assessment updated successfully",
     });
+
   } catch (error) {
     console.error("🚨 Unexpected Error:", error.message || error);
 
@@ -216,7 +242,26 @@ const getQuestionsForAssessment = async (req, res) => {
   }
 };
 
-const updateAssessment = async (req, res) => { };
+const updateQuestion_Temparature = async (req, res) => {
+  const { id } = req.params;
+  const { temparature } = req.body;
+  try {
+    const question = await Question.findById(id);
+
+    if (!question) {
+      return res.status(404).json({ message: "Question not found", status: false });
+    }
+
+    question.temparature = temparature
+    await question.save();
+
+    return res.status(200).json({ message: "Question updated successfully", status: true });
+  }
+  catch (error) {
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+}
+
 
 module.exports = {
   removeAssessment,
@@ -225,5 +270,6 @@ module.exports = {
   uploadToAiApi,
   createAssessment,
   getAssessmentById,
-  getQuestionsForAssessment
+  getQuestionsForAssessment,
+  updateQuestion_Temparature
 }

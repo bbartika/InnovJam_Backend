@@ -280,6 +280,44 @@ const updateUser = async (req, res) => {
   }
 };
 
+const assignCourseToUser = async (req, res) => {
+  const { id } = req.params;
+  const { course_code } = req.body;
+  try {
+    // ✅ Fetch User
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found.", status: false });
+    }
+
+    if (!course_code) {
+      return res.status(400).json({ message: "Please provide course code.", status: false });
+    }
+
+    // ✅ Validate Course Codes
+    const validCourses = await Course.find({ course_code: { $in: course_code } });
+    const validCourseCodes = validCourses.map(course => course.course_code);
+
+    if (validCourseCodes.length === 0) {
+      return res.status(404).json({ message: "No valid courses found.", status: false });
+    }
+
+    // ✅ Update User's Course List Without Duplicates
+    user.course_code = Array.from(new Set([...user.course_code, ...validCourseCodes]));
+    await user.save();
+
+    return res.status(200).json({
+      message: "Courses assigned to user successfully!",
+      status: true,
+      assignedCourses: validCourseCodes
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error.", error: error.message });
+  }
+};
+
+
 const removeUser = async (req, res) => {
   const { id } = req.params;
 
@@ -391,6 +429,7 @@ module.exports = {
   updateUser,
   removeUser,
   getAllUsers,
-  getUserDetailsById
+  getUserDetailsById,
+  assignCourseToUser
 }
 

@@ -7,6 +7,18 @@ const questionSchema = new mongoose.Schema({
         ref: 'Assessment',
         required: true
     },
+    comparison_count: {
+        type: Number,
+        default: 0
+    },
+    comparison_instruction: {
+        type: String,
+        default: ''
+    },
+    temparature: {
+        type: Number,
+        default: 0
+    },
     question_number: {
         type: String,
         required: true
