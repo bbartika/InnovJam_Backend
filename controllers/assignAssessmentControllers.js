@@ -5,14 +5,21 @@ const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
 const StudentAnswer = require('../Model/studentAnswer');
 const evaluateByAI = require('./evaluationByAi');
+const ArchivedStudentAnswer = require('../Model/archivedStudentAnswerModel');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 const assignAssessment = async (req, res) => {
     const { assessmentId } = req.query;
+    const { learners } = req.body;
 
     try {
         if (!mongoIdVerification(assessmentId)) {
             return res.status(400).json({ message: "Invalid assessment ID." });
+        }
+
+        // 🔍 Check if all provided learner IDs are valid
+        if (!Array.isArray(learners) || learners.some(id => !mongoIdVerification(id))) {
+            return res.status(400).json({ message: "Invalid learner IDs provided." });
         }
 
         // 🔍 Check if the assessment exists
@@ -27,28 +34,34 @@ const assignAssessment = async (req, res) => {
             return res.status(404).json({ message: "Course not found" });
         }
 
-        // 🔍 Get all learners for the course
-        const learners = await User.find(
-            {
-                course_code: { $in: [course.course_code] },
-                role: "learner"
-            },
+        // 🔍 Get learners from provided learner IDs
+        const learnersData = await User.find(
+            { _id: { $in: learners }, role: "learner" },
             { password: 0, password_org: 0 }
         );
 
-        if (learners.length === 0) {
-            return res.status(404).json({ message: "No learners found for this course." });
+        if (learnersData.length !== learners.length) {
+            return res.status(400).json({ message: "Some learner IDs are invalid or do not exist.", status: false });
+        }
+
+        // 🔍 Ensure all learners are part of the course
+        const learnersNotInCourse = learnersData.filter(learner => !learner.course_code.includes(course.course_code));
+        if (learnersNotInCourse.length > 0) {
+            await User.updateMany(
+                { _id: { $in: learnersNotInCourse.map(l => l._id) } },
+                { $addToSet: { course_code: course.course_code } }
+            );
         }
 
         // 🔍 Get already assigned learners
         const existingAssignments = await AssignAssessment.find({
             assessmentId: assessmentId,
-            userId: { $in: learners.map(learner => learner._id) }
+            userId: { $in: learnersData.map(learner => learner._id) }
         });
         const assignedUserIds = new Set(existingAssignments.map(a => a.userId.toString()));
 
         // 🔍 Filter learners who are NOT already assigned
-        const newAssignments = learners
+        const newAssignments = learnersData
             .filter(learner => !assignedUserIds.has(learner._id.toString()))
             .map(learner => ({
                 userId: learner._id,
@@ -57,12 +70,12 @@ const assignAssessment = async (req, res) => {
             }));
 
         if (newAssignments.length === 0) {
-            return res.status(200).json({ message: "All learners are already assigned this assessment." });
+            return res.status(200).json({ message: "All learners are already assigned this assessment.", status: true });
         }
 
         await AssignAssessment.insertMany(newAssignments);
 
-        return res.status(201).json({ message: "Assessment assigned to new learners", assignments: newAssignments });
+        return res.status(201).json({ message: "Assessment assigned to new learners", assignments: newAssignments, status: true });
     } catch (error) {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
@@ -83,7 +96,18 @@ const reassignAssessment = async (req, res) => {
             return res.status(404).json({ message: "Assignment not found for the user.", status: false });
         }
 
-        // 🔄 Update only the status to "pending"
+        // 🔍 Fetch student answers
+        const studentAnswers = await StudentAnswer.find({ user_id: userId });
+
+        if (studentAnswers.length > 0) {
+            // 🔄 Store previous responses in an archive collection
+            await ArchivedStudentAnswer.insertMany(studentAnswers.map(ans => ({ ...ans.toObject(), archivedAt: new Date() })));
+
+            // 🔄 Remove previous responses
+            await StudentAnswer.deleteMany({ user_id: userId });
+        }
+
+        // 🔄 Update assignment status to "in_progress"
         assignment.status = "in_progress";
         await assignment.save();
 
