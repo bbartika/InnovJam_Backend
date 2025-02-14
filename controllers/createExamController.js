@@ -242,26 +242,44 @@ const getQuestionsForAssessment = async (req, res) => {
   }
 };
 
-const updateQuestion_Temparature = async (req, res) => {
-  const { id } = req.params;
-  const { temparature } = req.body;
-  try {
-    const question = await Question.findById(id);
+const updateQuestion_Temperature = async (req, res) => {
+  const { questions } = req.body; // Expecting an array of objects [{ question_id, temperature }]
 
-    if (!question) {
-      return res.status(404).json({ message: "Question not found", status: false });
+  try {
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ message: "Invalid input format", status: false });
     }
 
-    question.temparature = temparature
-    await question.save();
+    // Validate all question IDs and temperature fields
+    for (const q of questions) {
+      if (!mongoIdVerification(q.question_id) || q.temperature === undefined) {
+        return res.status(400).json({ message: "Invalid question ID or missing temperature", status: false });
+      }
+    }
 
-    return res.status(200).json({ message: "Question updated successfully", status: true });
-  }
-  catch (error) {
+    // Check if all questions exist
+    const questionIds = questions.map(q => q.question_id);
+    const existingQuestions = await Question.find({ _id: { $in: questionIds } });
+
+    if (existingQuestions.length !== questions.length) {
+      return res.status(404).json({ message: "Some questions not found", status: false });
+    }
+
+    // Perform bulk update
+    const bulkOperations = questions.map(q => ({
+      updateOne: {
+        filter: { _id: q.question_id },
+        update: { $set: { temperature: q.temperature } }
+      }
+    }));
+
+    await Question.bulkWrite(bulkOperations);
+
+    return res.status(200).json({ message: "All questions updated successfully", status: true });
+  } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
-}
-
+};
 
 module.exports = {
   removeAssessment,
@@ -271,5 +289,5 @@ module.exports = {
   createAssessment,
   getAssessmentById,
   getQuestionsForAssessment,
-  updateQuestion_Temparature
+  updateQuestion_Temperature
 }

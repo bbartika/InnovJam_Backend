@@ -6,7 +6,7 @@ const validateObjectIdMiddleware = require('../middleware/mongoIdVerification');
 
 router.post('/create', createAiModel);
 router.put('/update/:id', validateObjectIdMiddleware, updateAiModel);
-router.get('/get/:id', getAiModelById);
+router.get('/get/:id',validateObjectIdMiddleware, getAiModelById);
 router.get('/getall', getAllAiModel);
 router.delete('/remove/:id', validateObjectIdMiddleware, removeAiModel);
 

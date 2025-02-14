@@ -5,7 +5,7 @@ const { removeAssessment,
   getAllAssessments,
   getAssessmentById,
   getQuestionsForAssessment,
-  updateQuestion_Temparature,
+  updateQuestion_Temperature,
   createAssessment } = require('../controllers/createExamController');
 const validateObjectIdMiddleware = require('../middleware/mongoIdVerification')
 
@@ -14,7 +14,7 @@ router.get('/getassessment/:id', validateObjectIdMiddleware, getAssessmentById);
 router.get('/getquestions/:id', validateObjectIdMiddleware, getQuestionsBasedOnAssessmentId);
 router.get('/getquestionsforassessment/:id', validateObjectIdMiddleware, getQuestionsForAssessment);
 router.get('/getallassessments/:course_id', getAllAssessments);
-router.put('/updatequestiontemparature/:id', validateObjectIdMiddleware, updateQuestion_Temparature);
+router.put('/updatequestiontemperature', validateObjectIdMiddleware, updateQuestion_Temperature);
 router.delete('/removeassessment/:id', validateObjectIdMiddleware, removeAssessment);
 
 module.exports = router;

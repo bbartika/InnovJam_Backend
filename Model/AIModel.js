@@ -2,15 +2,15 @@ const mongoose = require('mongoose');
 
 const aiSchema = new mongoose.Schema({
     llm_name: {
-        type: String,
+        type: [String],
         required: true
     },
     model_type: {
-        type: String,
+        type: [String],
         required: true
     },
     weightage: {
-        type: String,
+        type: [String],
         required: true
     }
 })
