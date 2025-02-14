@@ -153,7 +153,6 @@ const getQuestionsBasedOnAssessmentId = async (req, res) => {
   }
 }
 
-
 const removeAssessment = async (req, res) => {
   const { id } = req.params;
 

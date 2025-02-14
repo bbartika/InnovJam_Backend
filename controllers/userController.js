@@ -316,6 +316,24 @@ const removeUser = async (req, res) => {
   }
 };
 
+const getUserDetailsById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    return res.status(200).json(user);
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+
 const getAllUsers = async (req, res) => {
 
   try {
@@ -324,6 +342,7 @@ const getAllUsers = async (req, res) => {
     const users = await User.find();
 
     // Arrays to hold users by their roles
+    const superadmin = [];
     const admins = [];
     const learners = [];
     const assessors = [];
@@ -332,9 +351,11 @@ const getAllUsers = async (req, res) => {
     // Classify users based on their roles
     users.forEach(user => {
       switch (user.role) {
-        case 'super_admin':
         case 'admin':
           admins.push(user);
+          break;
+        case 'super_admin':
+          superadmin.push(user);
           break;
         case 'learner':
           learners.push(user);
@@ -351,6 +372,7 @@ const getAllUsers = async (req, res) => {
     });
 
     return res.json({
+      superadmin,
       admins,
       learners,
       assessors,
@@ -368,6 +390,7 @@ module.exports = {
   getUsersByRole,
   updateUser,
   removeUser,
-  getAllUsers
+  getAllUsers,
+  getUserDetailsById
 }
 

@@ -6,8 +6,7 @@ const { createCourse,
     getCourseById,
     updateCourse,
     deleteCourse,
-    getCoursesByUserId,
-    getAllLearnersByCourse
+    getCoursesByUserId
 } = require('../controllers/courseController');
 const authMiddleware = require('../middleware/authMiddleware');
 const validateObjectIdMiddleware = require('../middleware/mongoIdVerification')
@@ -16,7 +15,6 @@ router.post('/create', createCourse);
 router.get('/getcourses', getAllCourses);
 router.get('/courses/:id', validateObjectIdMiddleware, getCourseById);
 router.get('/courses/user/:userId', getCoursesByUserId);
-router.get('/learners/:id', validateObjectIdMiddleware, getAllLearnersByCourse);
 router.put('/update/:id', validateObjectIdMiddleware, updateCourse);
 router.delete('/remove/:id', validateObjectIdMiddleware, deleteCourse);
 
