@@ -3,8 +3,10 @@ const User = require('../Model/UserModel')
 const CourseSchema = require('../Model/CourseSchema_model');
 const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
+const GradeRange = require('../Model/gradeRangeModel');
 const StudentAnswer = require('../Model/studentAnswer');
 const evaluateByAI = require('./evaluationByAi');
+const AIModel = require('../Model/AIModel');
 const ArchivedStudentAnswer = require('../Model/archivedStudentAnswerModel');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
@@ -158,6 +160,9 @@ const udpateAssignedAssessment = async (req, res) => {
         // Get Assessment and Questions
         const assessment = await Assessment.findById(updatedAssignment.assessmentId);
         const questions = await Question.find({ assessmentId: assessment._id });
+        const aiModelDetail = await AIModel.findOne({ model_name: assessment.ai_model_id });
+        const gradeDetails = await GradeRange.find({ grade_id: assessment.grade_id });
+        const maxMark = Math.max(...gradeDetails.map(grade => grade.endRange));
 
         // Fetch Student Answers
         const studentAnswers = await StudentAnswer.find({
@@ -166,16 +171,25 @@ const udpateAssignedAssessment = async (req, res) => {
         });
 
         // Prepare Data for AI Evaluation
-        const evaluationData = studentAnswers.map(answer => {
+        const studentQuestionDetails = studentAnswers.map(answer => {
             const question = questions.find(q => q._id.equals(answer.question_id));
 
             return {
                 suggested_answer: Array.isArray(question?.suggested_answer)
                     ? question.suggested_answer.join(" ")
                     : (question?.suggested_answer || ""),
+                question: question?.question,
+                comparison_instruction: question?.comparison_instruction,
+                comparison_count: question?.comparison_count,
                 student_answer: answer.student_answer?.trim() || ""
             };
         }).filter(data => data.suggested_answer && data.student_answer);
+
+        const evaluationData = {
+            ...studentQuestionDetails,
+            maxMark,
+            model: aiModelDetail.model_type
+        }
 
         // Send Data to AI for Evaluation (Assume `evaluateByAI` is an async function)
         const aiEvaluations = await evaluateByAI(evaluationData);
@@ -183,13 +197,11 @@ const udpateAssignedAssessment = async (req, res) => {
         // Update Student Answers with AI Evaluation
 
         const updatePromises = studentAnswers.map((answer, index) => {
-            const { gemini_score, feedback, sbert_score, minilm_score, labse_score } = aiEvaluations[index];
+            const { first_score, second_score, feedback } = aiEvaluations[index];
             return StudentAnswer.findByIdAndUpdate(answer._id, {
-                gemini_score,
                 feedback,
-                sbert_score,
-                minilm_score,
-                labse_score
+                first_score,
+                second_score
             }, { new: true });
         });
 
