@@ -12,7 +12,7 @@ const mongoIdVerification = require('../services/mongoIdValidation');
 
 const assignAssessment = async (req, res) => {
     const { assessmentId } = req.query;
-    const { learners } = req.body;
+    const learners = req.body;
 
     try {
         if (!mongoIdVerification(assessmentId)) {
@@ -179,35 +179,37 @@ const udpateAssignedAssessment = async (req, res) => {
         // Prepare Data for AI Evaluation
         const studentQuestionDetails = studentAnswers.map(answer => {
             const question = questions.find(q => q._id.equals(answer.question_id));
-
             return {
                 suggested_answer: Array.isArray(question?.suggested_answer)
                     ? question.suggested_answer.join(" ")
                     : (question?.suggested_answer || ""),
                 question: question?.question,
-                comparison_instruction: question?.comparison_instruction,
                 comparison_count: question?.comparison_count,
                 temperature: question?.temperature,
                 student_answer: answer.student_answer?.trim() || "",
-                marks: maxMark,
-                provider: aiModelDetail.llm_name,
-                model: aiModelDetail.model_type
+                marks: maxMark
             };
         }).filter(data => data.suggested_answer && data.student_answer);
 
-        const evaluationData = {
-            ...studentQuestionDetails,
+        // Send Data to AI for First Evaluation (Index 0)
+        const aiFirstEvaluations = await evaluateByAI(studentQuestionDetails.map(data => ({
+            ...data,
+            provider: aiModelDetail.llm_name[0],
+            model: aiModelDetail.model_type[0]
+        })), aiModelDetail.llm_name[0]);
 
-        }
+        // Send Data to AI for Second Evaluation (Index 1)
+        const aiSecondEvaluations = await evaluateByAI(studentQuestionDetails.map(data => ({
+            ...data,
+            provider: aiModelDetail.llm_name[1],
+            model: aiModelDetail.model_type[1]
+        })), aiModelDetail.llm_name[1]);
 
-        // Send Data to AI for Evaluation (Assume `evaluateByAI` is an async function)
-        const aiFirstEvaluations = await evaluateByAI(evaluationData,);
-        const aiSecondEvaluations = await evaluateByAI(evaluationData,);
         // Update Student Answers with AI Evaluation
-
         const updatePromises = studentAnswers.map((answer, index) => {
             const { score: firstScore, feedback: first_score_feedback } = aiFirstEvaluations[index];
             const { score: secondScore, feedback: second_score_feedback } = aiSecondEvaluations[index];
+
             return StudentAnswer.findByIdAndUpdate(answer._id, {
                 first_score: firstScore,
                 second_score: secondScore,
@@ -217,6 +219,7 @@ const udpateAssignedAssessment = async (req, res) => {
         });
 
         await Promise.all(updatePromises);
+
 
         return res.status(200).json({
             message: "Assigned assessment updated and student answers evaluated",
