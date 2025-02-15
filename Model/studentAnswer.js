@@ -38,10 +38,6 @@ const studentAnswerSchema = new mongoose.Schema({
     human_assess_remarks: {
         type: String,
         default: null
-    },
-    isCompetent: {
-        type: Boolean,
-        default: false
     }
 });
 

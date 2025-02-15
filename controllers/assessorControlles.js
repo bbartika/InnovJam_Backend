@@ -5,6 +5,7 @@ const User = require('../Model/UserModel');
 const StudentAnswer = require('../Model/studentAnswer');
 const Question = require('../Model/QuestionModel');
 const GradeRange = require("../Model/gradeRangeModel");
+const AiModel = require("../Model/AIModel");
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 const getStudentAndAssessmentDetails = async (req, res) => {
@@ -56,27 +57,19 @@ const getStudentScore = async (req, res) => {
         }
 
         const assessment = await Assessment.findById(assessment_id).select("-assessment_instruction -case_study_context");
-
-        if (!assessment) {
-            return res.status(404).json({ message: "Assessment not found" });
-        }
+        if (!assessment) return res.status(404).json({ message: "Assessment not found" });
 
         const course_details = await Course.findById(assessment.courseId);
+        if (!course_details) return res.status(404).json({ message: "Course not found" });
 
-        if (!course_details) {
-            return res.status(404).json({ message: "Course not found" });
-        }
+        const AiModelDetails = await AiModel.findById(assessment.ai_model_id);
+        if (!AiModelDetails) return res.status(404).json({ message: "AI Model not found" });
 
         const questions = await Question.find({ assessmentId: assessment_id }).select("_id");
-        if (!questions || questions.length === 0) {
-            return res.status(404).json({ message: "Questions not found" });
-        }
+        if (!questions || questions.length === 0) return res.status(404).json({ message: "Questions not found" });
 
         const assignedData = await Assigned.find({ assessmentId: assessment_id, status: "completed" }).select("userId status");
-
-        if (!assignedData || assignedData.length === 0) {
-            return res.status(404).json({ message: "No assigned students found" });
-        }
+        if (!assignedData || assignedData.length === 0) return res.status(404).json({ message: "No assigned students found" });
 
         // Get student IDs
         const studentIds = assignedData.map(a => a.userId);
@@ -87,20 +80,40 @@ const getStudentScore = async (req, res) => {
             question_id: { $in: questions.map(q => q._id) }
         });
 
-        if (!studentAnswers || studentAnswers.length === 0) {
-            return res.status(404).json({ message: "No student answers found" });
-        }
+        if (!studentAnswers || studentAnswers.length === 0) return res.status(404).json({ message: "No student answers found" });
 
-        // Calculate total score, attempted questions, and total questions per student
+        // Get AI Model Weightage
+        const weightage = AiModelDetails.weightage.map(Number); // Convert to numbers
+        if (weightage.length !== 2) return res.status(500).json({ message: "Invalid AI Model Weightage" });
+
+        const firstWeightage = weightage[0] / 100;
+        const secondWeightage = weightage[1] / 100;
+
+        // Calculate total score and competency status
         const studentScores = {};
         studentAnswers.forEach(answer => {
             const userId = answer.user_id.toString();
             if (!studentScores[userId]) {
-                studentScores[userId] = { totalScore: 0, attemptedQuestions: 0, totalQuestions: questions.length };
+                studentScores[userId] = {
+                    first_score: 0,
+                    second_score: 0,
+                    attemptedQuestions: 0,
+                    totalQuestions: questions.length,
+                    isCompetent: true 
+                };
             }
-            if (answer.gemini_score !== null) {
-                studentScores[userId].totalScore += answer.gemini_score || 0;
-                studentScores[userId].attemptedQuestions += 1;
+
+            // Assign scores based on question order
+            if (studentScores[userId].attemptedQuestions < questions.length / 2) {
+                studentScores[userId].first_score += answer.gemini_score || 0;
+            } else {
+                studentScores[userId].second_score += answer.gemini_score || 0;
+            }
+            studentScores[userId].attemptedQuestions += 1;
+
+            // If any answer is "not competent", mark student as not competent
+            if (answer.competency_status === "not-competent") {
+                studentScores[userId].isCompetent = false;
             }
         });
 
@@ -108,12 +121,27 @@ const getStudentScore = async (req, res) => {
         const students = await User.find({ _id: { $in: studentIds } }).select("name email");
 
         // Map student scores with student details, including status
-        const result = students.map(student => ({
-            user_id: student._id,
-            student_name: student.name,
-            student_email: student.email,
-            total_questions: questions.length,
-        }));
+        const result = students.map(student => {
+            const userId = student._id.toString();
+            const scores = studentScores[userId] || { first_score: 0, second_score: 0, totalQuestions: questions.length };
+
+            // Correctly calculate final weighted score
+            const final_score = (scores.first_score * firstWeightage) + (scores.second_score * secondWeightage);
+
+            console.log(final_score + " FINAL SCORE");
+
+            // Determine competency status
+            const status = scores.isCompetent ? "competent" : "not-competent";
+
+            return {
+                user_id: student._id,
+                student_name: student.name,
+                student_email: student.email,
+                total_questions: questions.length,
+                status, // Competent or Not Competent
+                final_score: parseFloat(final_score.toFixed(2)) // Rounded to 2 decimal places
+            };
+        });
 
         return res.status(200).json({ assessment, result });
 
@@ -122,6 +150,8 @@ const getStudentScore = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
+
+
 
 const getStudentAnswerResponse = async (req, res) => {
     const { user_Id, assessment_id } = req.query;

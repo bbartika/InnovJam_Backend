@@ -5,10 +5,11 @@ const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
 const GradeRange = require('../Model/gradeRangeModel');
 const StudentAnswer = require('../Model/studentAnswer');
-const evaluateByAI = require('./evaluationByAi');
+const evaluationByAI = require('./evaluationByAi');
 const AIModel = require('../Model/AIModel');
 const ArchivedStudentAnswer = require('../Model/archivedStudentAnswerModel');
 const mongoIdVerification = require('../services/mongoIdValidation');
+const mongoose = require('mongoose');
 
 const assignAssessment = async (req, res) => {
     const { assessmentId } = req.query;
@@ -147,7 +148,6 @@ const removeAssignedAssessment = async (req, res) => {
 const udpateAssignedAssessment = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
-
     try {
         if (!mongoIdVerification(id)) {
             return res.status(400).json({ message: "Invalid assignment ID." });
@@ -165,9 +165,9 @@ const udpateAssignedAssessment = async (req, res) => {
 
         // Get Assessment and Questions
         const assessment = await Assessment.findById(updatedAssignment.assessmentId);
-        const questions = await Question.find({ assessmentId: assessment._id });
-        const aiModelDetail = await AIModel.findOne({ model_name: assessment.ai_model_id });
-        const gradeDetails = await GradeRange.find({ grade_id: assessment.grade_id });
+        const questions = await Question.find({ assessmentId: assessment._id.toString() });
+        const aiModelDetail = await AIModel.findById(assessment.ai_model_id.toString());
+        const gradeDetails = await GradeRange.find({ grade_id: assessment.grade_id.toString() });
         const maxMark = Math.max(...gradeDetails.map(grade => grade.endRange));
 
         // Fetch Student Answers
@@ -180,29 +180,30 @@ const udpateAssignedAssessment = async (req, res) => {
         const studentQuestionDetails = studentAnswers.map(answer => {
             const question = questions.find(q => q._id.equals(answer.question_id));
             return {
+                question: question?.question,
                 suggested_answer: Array.isArray(question?.suggested_answer)
                     ? question.suggested_answer.join(" ")
                     : (question?.suggested_answer || ""),
-                question: question?.question,
-                comparison_count: question?.comparison_count,
-                temperature: question?.temperature,
                 student_answer: answer.student_answer?.trim() || "",
-                marks: maxMark
+                comparison_count: String(question?.comparison_count || "0"),
+                marks: maxMark,
+                temperature: parseFloat(question?.temperature || 0.0),
             };
         }).filter(data => data.suggested_answer && data.student_answer);
 
+
         // Send Data to AI for First Evaluation (Index 0)
-        const aiFirstEvaluations = await evaluateByAI(studentQuestionDetails.map(data => ({
+        const aiFirstEvaluations = await evaluationByAI(studentQuestionDetails.map(data => ({
             ...data,
+            model: aiModelDetail.model_type[0],
             provider: aiModelDetail.llm_name[0],
-            model: aiModelDetail.model_type[0]
         })), aiModelDetail.llm_name[0]);
 
         // Send Data to AI for Second Evaluation (Index 1)
-        const aiSecondEvaluations = await evaluateByAI(studentQuestionDetails.map(data => ({
+        const aiSecondEvaluations = await evaluationByAI(studentQuestionDetails.map(data => ({
             ...data,
-            provider: aiModelDetail.llm_name[1],
-            model: aiModelDetail.model_type[1]
+            model: aiModelDetail.model_type[1],
+            provider: aiModelDetail.llm_name[1]
         })), aiModelDetail.llm_name[1]);
 
         // Update Student Answers with AI Evaluation
@@ -218,12 +219,11 @@ const udpateAssignedAssessment = async (req, res) => {
             }, { new: true });
         });
 
-        await Promise.all(updatePromises);
-
+        const data = await Promise.all(updatePromises);
 
         return res.status(200).json({
-            message: "Assigned assessment updated and student answers evaluated",
-            updatedAssignment
+            data,
+            message: "Assigned assessment updated and student answers evaluated"
         });
 
     } catch (error) {
