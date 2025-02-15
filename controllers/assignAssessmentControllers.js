@@ -77,6 +77,12 @@ const assignAssessment = async (req, res) => {
 
         await AssignAssessment.insertMany(newAssignments);
 
+        // 🔄 Update total_enrollment count
+        await CourseSchema.findByIdAndUpdate(
+            assessment.courseId,
+            { $inc: { total_enrollment: newAssignments.length } } // Increment total_enrollment by the number of newly assigned learners
+        );
+
         return res.status(201).json({ message: "Assessment assigned to new learners", assignments: newAssignments, status: true });
     } catch (error) {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
@@ -192,16 +198,18 @@ const udpateAssignedAssessment = async (req, res) => {
         }
 
         // Send Data to AI for Evaluation (Assume `evaluateByAI` is an async function)
-        const aiEvaluations = await evaluateByAI(evaluationData);
-
+        const aiFirstEvaluations = await evaluateByAI(evaluationData);
+        const aiSecondEvaluations = await evaluateByAI(evaluationData);
         // Update Student Answers with AI Evaluation
 
         const updatePromises = studentAnswers.map((answer, index) => {
-            const { first_score, second_score, feedback } = aiEvaluations[index];
+            const { score: firstScore, feedback: first_score_feedback } = aiFirstEvaluations[index];
+            const { score: secondScore, feedback: second_score_feedback } = aiSecondEvaluations[index];
             return StudentAnswer.findByIdAndUpdate(answer._id, {
-                feedback,
-                first_score,
-                second_score
+                first_score: firstScore,
+                second_score: secondScore,
+                first_score_feedback,
+                second_score_feedback
             }, { new: true });
         });
 

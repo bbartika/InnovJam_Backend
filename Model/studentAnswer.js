@@ -27,7 +27,11 @@ const studentAnswerSchema = new mongoose.Schema({
         type: Number,
         default: null
     },
-    feedback: {
+    first_score_feedback: {
+        type: String,
+        default: ''
+    },
+    second_score_feedback: {
         type: String,
         default: ''
     },

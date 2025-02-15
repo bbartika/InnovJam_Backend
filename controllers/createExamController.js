@@ -5,11 +5,12 @@ const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
 const AssignAssessment = require('../Model/assignAssessmentSchema');
 const Grade = require('../Model/gradeModel');
+const CourseSchema = require('../Model/CourseSchema_model');
 const AiModel = require('../Model/AIModel');
+const mongoose = require("mongoose");
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 const uploadToAiApi = async (content, retries = 3) => {
-
   const formData = new FormData();
   formData.append("content", content);
 
@@ -21,7 +22,6 @@ const uploadToAiApi = async (content, retries = 3) => {
         formData,
         { timeout: 600000 }
       );
-      console.log("Response from AI API received:", response.data);
       return response.data;
     } catch (error) {
       console.error(`❌ Attempt ${attempt} failed:`, error.message || error);
@@ -80,7 +80,7 @@ const createAssessment = async (req, res) => {
 
     const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration } = aiResponse;
 
-    if (!assessment_type || !case_study_context || !assessment_instruction || !questions_and_answers) {
+    if (!assessment_type || !assessment_instruction || !questions_and_answers) {
       return res.status(400).json({ success: false, message: "Invalid AI response. Please try again." });
     }
 
@@ -242,7 +242,7 @@ const getQuestionsForAssessment = async (req, res) => {
 };
 
 const updateQuestion_Temperature = async (req, res) => {
-  const { questions } = req.body; // Expecting an array of objects [{ question_id, temperature }]
+  const questions = req.body;
 
   try {
     if (!Array.isArray(questions) || questions.length === 0) {
@@ -251,13 +251,15 @@ const updateQuestion_Temperature = async (req, res) => {
 
     // Validate all question IDs and temperature fields
     for (const q of questions) {
-      if (!mongoIdVerification(q.question_id) || q.temperature === undefined) {
+      if (!mongoose.Types.ObjectId.isValid(q.question_id) || q.temperature === undefined) {
         return res.status(400).json({ message: "Invalid question ID or missing temperature", status: false });
       }
     }
 
+    // Convert question_id to ObjectId for MongoDB query
+    const questionIds = questions.map(q => new mongoose.Types.ObjectId(q.question_id));
+
     // Check if all questions exist
-    const questionIds = questions.map(q => q.question_id);
     const existingQuestions = await Question.find({ _id: { $in: questionIds } });
 
     if (existingQuestions.length !== questions.length) {
@@ -267,8 +269,8 @@ const updateQuestion_Temperature = async (req, res) => {
     // Perform bulk update
     const bulkOperations = questions.map(q => ({
       updateOne: {
-        filter: { _id: q.question_id },
-        update: { $set: { temperature: q.temperature } }
+        filter: { _id: new mongoose.Types.ObjectId(q.question_id) },
+        update: { $set: { temparature: q.temperature } }
       }
     }));
 
