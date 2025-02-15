@@ -16,11 +16,11 @@ const axios = require("axios");
 //             '\n'
 //     },
 // ]
-const evaluationByAI = async (studentdata) => {
+const evaluationByAI = async (studentdata, llm_name) => {
     try {
         console.log(`Attempt : Sending request to AI API...`);
         const response = await axios.post(
-            `${process.env.AI_EVALUATION_SERVER_URL}/evaluate`, studentdata,
+            `${process.env.AI_SERVER_URL}/evaluate/${llm_name}`, studentdata,
         );
         const { results } = response.data;
         return results;

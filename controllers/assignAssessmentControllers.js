@@ -187,19 +187,22 @@ const udpateAssignedAssessment = async (req, res) => {
                 question: question?.question,
                 comparison_instruction: question?.comparison_instruction,
                 comparison_count: question?.comparison_count,
-                student_answer: answer.student_answer?.trim() || ""
+                temperature: question?.temperature,
+                student_answer: answer.student_answer?.trim() || "",
+                marks: maxMark,
+                provider: aiModelDetail.llm_name,
+                model: aiModelDetail.model_type
             };
         }).filter(data => data.suggested_answer && data.student_answer);
 
         const evaluationData = {
             ...studentQuestionDetails,
-            maxMark,
-            model: aiModelDetail.model_type
+
         }
 
         // Send Data to AI for Evaluation (Assume `evaluateByAI` is an async function)
-        const aiFirstEvaluations = await evaluateByAI(evaluationData);
-        const aiSecondEvaluations = await evaluateByAI(evaluationData);
+        const aiFirstEvaluations = await evaluateByAI(evaluationData,);
+        const aiSecondEvaluations = await evaluateByAI(evaluationData,);
         // Update Student Answers with AI Evaluation
 
         const updatePromises = studentAnswers.map((answer, index) => {

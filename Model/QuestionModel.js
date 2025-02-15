@@ -15,7 +15,7 @@ const questionSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
-    temparature: {
+    temperature: {
         type: Number,
         default: 0
     },

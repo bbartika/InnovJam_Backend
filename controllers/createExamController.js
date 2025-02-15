@@ -270,7 +270,7 @@ const updateQuestion_Temperature = async (req, res) => {
     const bulkOperations = questions.map(q => ({
       updateOne: {
         filter: { _id: new mongoose.Types.ObjectId(q.question_id) },
-        update: { $set: { temparature: q.temperature } }
+        update: { $set: { temperature: q.temperature } }
       }
     }));
 
