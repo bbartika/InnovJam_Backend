@@ -74,6 +74,10 @@ const getStudentScore = async (req, res) => {
         // Get student IDs
         const studentIds = assignedData.map(a => a.userId);
 
+        // 🔹 Fetch Student Details from DB
+        const students = await User.find({ _id: { $in: studentIds } }).select("_id name email");  
+        if (!students || students.length === 0) return res.status(404).json({ message: "Students not found" });
+
         // Fetch student answers
         const studentAnswers = await StudentAnswer.find({
             user_id: { $in: studentIds },
@@ -83,63 +87,52 @@ const getStudentScore = async (req, res) => {
         if (!studentAnswers || studentAnswers.length === 0) return res.status(404).json({ message: "No student answers found" });
 
         // Get AI Model Weightage
-        const weightage = AiModelDetails.weightage.map(Number); // Convert to numbers
+        const weightage = AiModelDetails.weightage.map(Number);
         if (weightage.length !== 2) return res.status(500).json({ message: "Invalid AI Model Weightage" });
 
         const firstWeightage = weightage[0] / 100;
         const secondWeightage = weightage[1] / 100;
 
-        // Calculate total score and competency status
         const studentScores = {};
         studentAnswers.forEach(answer => {
             const userId = answer.user_id.toString();
+
             if (!studentScores[userId]) {
                 studentScores[userId] = {
                     first_score: 0,
                     second_score: 0,
-                    attemptedQuestions: 0,
-                    totalQuestions: questions.length,
-                    isCompetent: true 
+                    isCompetent: true
                 };
             }
 
-            // Assign scores based on question order
-            if (studentScores[userId].attemptedQuestions < questions.length / 2) {
-                studentScores[userId].first_score += answer.gemini_score || 0;
-            } else {
-                studentScores[userId].second_score += answer.gemini_score || 0;
-            }
-            studentScores[userId].attemptedQuestions += 1;
+            // Accumulate scores
+            studentScores[userId].first_score += answer.first_score ?? 0;
+            studentScores[userId].second_score += answer.second_score ?? 0;
 
-            // If any answer is "not competent", mark student as not competent
-            if (answer.competency_status === "not-competent") {
+            // If any answer is not competent, mark the whole student as not competent
+            if (!answer.isCompetent) {
                 studentScores[userId].isCompetent = false;
             }
         });
 
-        // Fetch student details
-        const students = await User.find({ _id: { $in: studentIds } }).select("name email");
-
-        // Map student scores with student details, including status
+        // Process final results
         const result = students.map(student => {
             const userId = student._id.toString();
-            const scores = studentScores[userId] || { first_score: 0, second_score: 0, totalQuestions: questions.length };
+            const scores = studentScores[userId] || { first_score: 0, second_score: 0, isCompetent: true };
 
-            // Correctly calculate final weighted score
+            // Apply weighted score formula
             const final_score = (scores.first_score * firstWeightage) + (scores.second_score * secondWeightage);
 
-            console.log(final_score + " FINAL SCORE");
-
-            // Determine competency status
+            // Determine overall competency status
             const status = scores.isCompetent ? "competent" : "not-competent";
 
             return {
                 user_id: student._id,
                 student_name: student.name,
                 student_email: student.email,
-                total_questions: questions.length,
-                status, // Competent or Not Competent
-                final_score: parseFloat(final_score.toFixed(2)) // Rounded to 2 decimal places
+                total_questions: questions.length, // 🔹 Fix: Use total question count
+                status,
+                final_score: parseFloat(final_score.toFixed(2))
             };
         });
 
@@ -150,8 +143,6 @@ const getStudentScore = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
-
-
 
 const getStudentAnswerResponse = async (req, res) => {
     const { user_Id, assessment_id } = req.query;
