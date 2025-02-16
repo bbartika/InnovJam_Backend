@@ -163,6 +163,11 @@ const getStudentAnswerResponse = async (req, res) => {
             return res.status(404).json({ message: "Assessment not found" });
         }
 
+        const AiModelDetails = await AiModel.findById(assessment.ai_model_id);
+        if (!AiModelDetails) return res.status(404).json({ message: "AI Model not found" });
+
+        const gradeRanges = await GradeRange.find({ grade_id: assessment.grade_id });
+
         // 🔍 Fetch all questions for the assessment
         const questions = await Question.find({ assessmentId: assessment_id })
         if (!questions || questions.length === 0) {
@@ -180,9 +185,25 @@ const getStudentAnswerResponse = async (req, res) => {
         // 🔍 Fetch student details
         const student = await User.findById(user_Id).select("name email");
 
+        // Get AI Model Weightage
+        const weightage = AiModelDetails.weightage.map(Number);
+        if (weightage.length !== 2) return res.status(500).json({ message: "Invalid AI Model Weightage" });
+
+        const firstWeightage = weightage[0] / 100;
+        const secondWeightage = weightage[1] / 100;
+
         // 🛠️ Merge questions and student answers
         const mergedData = questions.map(question => {
             const answer = studentAnswers.find(ans => ans.question_id.toString() === question._id.toString());
+
+            const first_score = parseFloat(answer.first_score) * firstWeightage;
+            const second_score = parseFloat(answer.second_score) * secondWeightage;
+
+            const sum = first_score + second_score; // Total score for this question
+
+            // Find the grade label for this sum
+            const grade = gradeRanges.find(range => sum >= range.startRange && sum <= range.endRange);
+            const label = grade ? grade.label : "not-competent";
 
             return {
                 question_id: question._id,
@@ -193,6 +214,7 @@ const getStudentAnswerResponse = async (req, res) => {
                 student_answer: answer ? answer.student_answer : null,
                 user_Id: answer ? answer.user_id.toString() : null,
                 feedback: answer ? answer.feedback : null,
+                status: label
             };
         });
 
@@ -216,6 +238,14 @@ const getAIScoreReport = async (req, res) => {
         if (!mongoIdVerification(user_id) || !mongoIdVerification(question_id)) {
             return res.status(400).json({ message: "Invalid user ID or question ID." });
         }
+
+        const question = await Question.findById(question_id);
+
+        if (!question) {
+            return res.status(400).json({ message: "Question is not found." })
+        }
+
+        const assessment = await Assessment.findById(question.assessmentId);
 
         const aiScoreReport = await StudentAnswer.findOne({ user_id: user_id, question_id: question_id })
 
