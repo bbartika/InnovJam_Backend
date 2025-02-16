@@ -20,11 +20,11 @@ const studentAnswerSchema = new mongoose.Schema({
         required: true
     },
     first_score: {
-        type: Number,
+        type: String,
         default: null
     },
     second_score: {
-        type: Number,
+        type: String,
         default: null
     },
     first_score_feedback: {

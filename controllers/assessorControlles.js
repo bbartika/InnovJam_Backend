@@ -65,6 +65,8 @@ const getStudentScore = async (req, res) => {
         const AiModelDetails = await AiModel.findById(assessment.ai_model_id);
         if (!AiModelDetails) return res.status(404).json({ message: "AI Model not found" });
 
+        const gradeRanges = await GradeRange.find({ grade_id: assessment.grade_id });
+
         const questions = await Question.find({ assessmentId: assessment_id }).select("_id");
         if (!questions || questions.length === 0) return res.status(404).json({ message: "Questions not found" });
 
@@ -75,7 +77,7 @@ const getStudentScore = async (req, res) => {
         const studentIds = assignedData.map(a => a.userId);
 
         // 🔹 Fetch Student Details from DB
-        const students = await User.find({ _id: { $in: studentIds } }).select("_id name email");  
+        const students = await User.find({ _id: { $in: studentIds } }).select("_id name email");
         if (!students || students.length === 0) return res.status(404).json({ message: "Students not found" });
 
         // Fetch student answers
@@ -94,45 +96,48 @@ const getStudentScore = async (req, res) => {
         const secondWeightage = weightage[1] / 100;
 
         const studentScores = {};
+
+        // Calculate scores and determine competency for each question
         studentAnswers.forEach(answer => {
             const userId = answer.user_id.toString();
 
+            const first_score = parseFloat(answer.first_score) * firstWeightage;
+            const second_score = parseFloat(answer.second_score) * secondWeightage;
+
+            const sum = first_score + second_score; // Total score for this question
+
+            // Find the grade label for this sum
+            const grade = gradeRanges.find(range => sum >= range.startRange && sum <= range.endRange);
+            const label = grade ? grade.label : "not-competent"; // Default label if not found
+
+            // Initialize student's record if not present
             if (!studentScores[userId]) {
-                studentScores[userId] = {
-                    first_score: 0,
-                    second_score: 0,
-                    isCompetent: true
-                };
+                studentScores[userId] = { total_first_score: 0, total_second_score: 0, labels: [] };
             }
 
-            // Accumulate scores
-            studentScores[userId].first_score += answer.first_score ?? 0;
-            studentScores[userId].second_score += answer.second_score ?? 0;
-
-            // If any answer is not competent, mark the whole student as not competent
-            if (!answer.isCompetent) {
-                studentScores[userId].isCompetent = false;
-            }
+            // Accumulate scores and store competency label for each question
+            studentScores[userId].total_first_score += parseFloat(answer.first_score);
+            studentScores[userId].total_second_score += parseFloat(answer.second_score);
+            studentScores[userId].labels.push(label); // Store competency for this question
         });
 
         // Process final results
         const result = students.map(student => {
             const userId = student._id.toString();
-            const scores = studentScores[userId] || { first_score: 0, second_score: 0, isCompetent: true };
+            const scores = studentScores[userId] || { total_first_score: 0, total_second_score: 0, labels: [] };
 
-            // Apply weighted score formula
-            const final_score = (scores.first_score * firstWeightage) + (scores.second_score * secondWeightage);
+            const final_score = (scores.total_first_score * firstWeightage) + (scores.total_second_score * secondWeightage);
 
-            // Determine overall competency status
-            const status = scores.isCompetent ? "competent" : "not-competent";
+            // Determine overall competency based on all question labels
+            const isCompetent = scores.labels.every(label => label === "competent");
 
             return {
                 user_id: student._id,
                 student_name: student.name,
                 student_email: student.email,
-                total_questions: questions.length, // 🔹 Fix: Use total question count
-                status,
-                final_score: parseFloat(final_score.toFixed(2))
+                total_questions: questions.length,
+                status: isCompetent ? "competent" : "not-competent",
+                final_score: parseFloat(final_score.toFixed(2)),
             };
         });
 
