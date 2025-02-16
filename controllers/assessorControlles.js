@@ -246,8 +246,17 @@ const getAIScoreReport = async (req, res) => {
         }
 
         const assessment = await Assessment.findById(question.assessmentId);
+        if (!assessment) return res.status(404).json({ message: "Assessment not found" });
 
-        const aiScoreReport = await StudentAnswer.findOne({ user_id: user_id, question_id: question_id })
+        const AiModelDetails = await AiModel.findById(assessment.ai_model_id);
+        if (!AiModelDetails) return res.status(404).json({ message: "AI Model not found" });
+
+        const studentResponseDetails = await StudentAnswer.findOne({ user_id: user_id, question_id: question_id })
+        const aiScoreReport = {
+            ...studentResponseDetails.toObject(), // Convert Mongoose document to a plain object
+            first_ai_name: AiModelDetails.llm_name[0],
+            second_ai_name: AiModelDetails.llm_name[1]
+        };
 
         return res.status(200).json({ aiScoreReport: aiScoreReport });
     }
