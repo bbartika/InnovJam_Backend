@@ -117,7 +117,7 @@ const reassignAssessment = async (req, res) => {
         }
 
         // 🔄 Update assignment status to "in_progress"
-        assignment.status = "in_progress";
+        assignment.status = "resubmission";
         await assignment.save();
 
         return res.status(200).json({ message: "Assessment reassigned successfully", assignment, status: true });

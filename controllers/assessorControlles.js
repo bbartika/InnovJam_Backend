@@ -70,8 +70,15 @@ const getStudentScore = async (req, res) => {
         const questions = await Question.find({ assessmentId: assessment_id }).select("_id");
         if (!questions || questions.length === 0) return res.status(404).json({ message: "Questions not found" });
 
-        const assignedData = await Assigned.find({ assessmentId: assessment_id, status: "completed" }).select("userId status");
-        if (!assignedData || assignedData.length === 0) return res.status(404).json({ message: "No assigned students found" });
+        // ✅ Fetch assigned students with "completed" or "resubmission" status
+        const assignedData = await Assigned.find({
+            assessmentId: assessment_id,
+            status: { $in: ["completed", "resubmission"] }, // <-- Updated filter
+        }).select("userId status");
+
+        if (!assignedData || assignedData.length === 0) {
+            return res.status(404).json({ message: "No assigned students found" });
+        }
 
         // Get student IDs
         const studentIds = assignedData.map(a => a.userId);
@@ -83,10 +90,12 @@ const getStudentScore = async (req, res) => {
         // Fetch student answers
         const studentAnswers = await StudentAnswer.find({
             user_id: { $in: studentIds },
-            question_id: { $in: questions.map(q => q._id) }
+            question_id: { $in: questions.map(q => q._id) },
         });
 
-        if (!studentAnswers || studentAnswers.length === 0) return res.status(404).json({ message: "No student answers found" });
+        if (!studentAnswers || studentAnswers.length === 0) {
+            return res.status(404).json({ message: "No student answers found" });
+        }
 
         // Get AI Model Weightage
         const weightage = AiModelDetails.weightage.map(Number);
@@ -131,6 +140,10 @@ const getStudentScore = async (req, res) => {
             // Determine overall competency based on all question labels
             const isCompetent = scores.labels.every(label => label === "competent");
 
+            // ✅ Get the assessment status from assignedData
+            const assignedRecord = assignedData.find(a => a.userId.toString() === userId);
+            const assessmentStatus = assignedRecord ? assignedRecord.status : "unknown"; // Default to unknown if not found
+
             return {
                 user_id: student._id,
                 student_name: student.name,
@@ -138,6 +151,7 @@ const getStudentScore = async (req, res) => {
                 total_questions: questions.length,
                 status: isCompetent ? "competent" : "not-competent",
                 final_score: parseFloat(final_score.toFixed(2)),
+                assessment_status: assessmentStatus, // ✅ Added this field
             };
         });
 
