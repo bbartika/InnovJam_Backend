@@ -2,6 +2,8 @@ const axios = require("axios");
 
 const evaluationByAI = async (studentdata, llm_name) => {
 
+    console.log(llm_name);
+
     try {
         console.log(" WORKING ON AI REQUEST");
         const response = await axios.post(
