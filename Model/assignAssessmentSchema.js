@@ -14,7 +14,7 @@ const assignAssessmentSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['pending', 'in_progress', 'completed']
+        enum: ['pending', 'in_progress', 'completed' , 'resubmission']
     },
 }, { timestamps: true });
 
