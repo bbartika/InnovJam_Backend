@@ -207,6 +207,7 @@ const getStudentAnswerResponse = async (req, res) => {
 
             return {
                 question_id: question._id,
+                comparison_instruction: question.comparison_instruction,
                 question_number: question.question_number,
                 question_instruction: question.question_instruction,
                 question: question.question,
