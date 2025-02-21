@@ -170,25 +170,28 @@ const getStudentAnswerResponse = async (req, res) => {
         const gradeRanges = await GradeRange.find({ grade_id: assessment.grade_id });
 
         // 🔍 Fetch all questions for the assessment
-        const questions = await Question.find({ assessmentId: assessment_id })
+        const questions = await Question.find({ assessmentId: assessment_id });
         if (!questions || questions.length === 0) {
             return res.status(404).json({ message: "No questions found for this assessment." });
         }
-
-        const grades = await GradeRange.find({ grade_id: assessment.grade_id });
 
         // 🔍 Fetch the student's answers for these questions
         const studentAnswers = await StudentAnswer.find({
             user_id: user_Id,
             question_id: { $in: questions.map(q => q._id) }
-        })
+        });
 
         // 🔍 Fetch student details
         const student = await User.findById(user_Id).select("name email");
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
 
         // Get AI Model Weightage
         const weightage = AiModelDetails.weightage.map(Number);
-        if (weightage.length !== 2) return res.status(500).json({ message: "Invalid AI Model Weightage" });
+        if (weightage.length !== 2) {
+            return res.status(500).json({ message: "Invalid AI Model Weightage" });
+        }
 
         const firstWeightage = weightage[0] / 100;
         const secondWeightage = weightage[1] / 100;
@@ -197,8 +200,13 @@ const getStudentAnswerResponse = async (req, res) => {
         const mergedData = questions.map(question => {
             const answer = studentAnswers.find(ans => ans.question_id.toString() === question._id.toString());
 
-            const first_score = parseFloat(answer.first_score) * firstWeightage;
-            const second_score = parseFloat(answer.second_score) * secondWeightage;
+            let first_score = 0;
+            let second_score = 0;
+
+            if (answer) {
+                first_score = parseFloat(answer.first_score || 0) * firstWeightage;
+                second_score = parseFloat(answer.second_score || 0) * secondWeightage;
+            }
 
             const sum = first_score + second_score; // Total score for this question
 
@@ -231,6 +239,7 @@ const getStudentAnswerResponse = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
+
 
 const getAIScoreReport = async (req, res) => {
     const { user_id, question_id } = req.query;
