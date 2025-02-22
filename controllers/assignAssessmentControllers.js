@@ -176,6 +176,7 @@ const udpateAssignedAssessment = async (req, res) => {
             question_id: { $in: questions.map(q => q._id) }
         });
 
+
         // Prepare Data for AI Evaluation
         const studentQuestionDetails = studentAnswers.map(answer => {
             const question = questions.find(q => q._id.equals(answer.question_id));
@@ -222,7 +223,6 @@ const udpateAssignedAssessment = async (req, res) => {
         const data = await Promise.all(updatePromises);
 
         return res.status(200).json({
-            data,
             message: "Assigned assessment updated and student answers evaluated"
         });
 
