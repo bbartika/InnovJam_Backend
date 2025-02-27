@@ -1,4 +1,5 @@
 const AIModel = require('../Model/AIModel');
+const Assessment = require('../Model/assessment_model');
 
 const validateArrayLength = (arr) => Array.isArray(arr) && arr.length === 2;
 
@@ -78,8 +79,14 @@ const getAllAiModel = async (req, res) => {
 
 // ✅ Remove AI Model
 const removeAiModel = async (req, res) => {
+    const { id } = req.params;
+
     try {
-        const { id } = req.params;
+
+        const assessment = await Assessment.findOne({ ai_model_id: id });
+        if (assessment) {
+            return res.status(400).json({ success: false, message: "Cannot delete an AI Model with associated assessments" });
+        }
         const deletedModel = await AIModel.findByIdAndDelete(id);
         if (!deletedModel) {
             return res.status(404).json({ success: false, message: "AI Model not found" });

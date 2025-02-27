@@ -1,5 +1,6 @@
 const GradeRange = require('../Model/gradeRangeModel');
 const Grade = require('../Model/gradeModel');
+const Assessment = require('../Model/assessment_model');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 const createGradeRange = async (req, res) => {
@@ -37,7 +38,6 @@ const createGradeRange = async (req, res) => {
     }
 };
 
-
 const getGradeRangeByGradeId = async (req, res) => {
     const { grade_id } = req.params;
 
@@ -66,6 +66,10 @@ const removeGradeRange = async (req, res) => {
             return res.status(400).json({ message: "Invalid range ID." });
         }
 
+        const assessment = await Assessment.findOne({ grade_id: id });
+        if (assessment) {
+            return res.status(400).json({ message: "Cannot delete a grade range with associated assessments" });
+        }
         const range = await GradeRange.findByIdAndDelete(id);
         if (!range) {
             return res.status(404).json({ message: "Grade range not found" });

@@ -1,5 +1,6 @@
 const CourseSchema = require('../Model/CourseSchema_model');
 const User = require('../Model/UserModel')
+const Assessment = require('../Model/assessment_model');
 const mongoIdVerification = require('../services/mongoIdValidation')
 
 const createCourse = async (req, res) => {
@@ -22,7 +23,7 @@ const createCourse = async (req, res) => {
       course_code,
       description,
       visibility,
-      total_enrollment : 0,
+      total_enrollment: 0,
       startDate,
       endDate,
     });
@@ -121,8 +122,16 @@ const updateCourse = async (req, res) => {
 
 // Delete a course
 const deleteCourse = async (req, res) => {
+  const { id } = req.params;
   try {
-    const deletedCourse = await CourseSchema.findByIdAndDelete(req.params.id);
+
+    const assessment = await Assessment.findOne({ courseId: id });
+
+    if (assessment) {
+      return res.status(400).json({ message: "Cannot delete a course with associated assessments" });
+    }
+
+    const deletedCourse = await CourseSchema.findByIdAndDelete(id);
     if (!deletedCourse) {
       return res.status(404).json({ message: "Course not found" });
     }

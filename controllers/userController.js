@@ -1,5 +1,6 @@
 const User = require("../Model/UserModel");
 const Course = require('../Model/CourseSchema_model');
+const Assigned = require('../Model/assignAssessmentSchema');
 const bcrypt = require("bcrypt");
 
 const createUser = async (req, res) => {
@@ -332,6 +333,12 @@ const removeUser = async (req, res) => {
     // ✅ Prevent Super Admin from Being Deleted
     if (user.role === 'super_admin') {
       return res.status(400).json({ message: "Super admin cannot be deleted." });
+    }
+
+    const assignedAssessment = await Assigned.findOne({ userId: id });
+
+    if (assignedAssessment) {
+      return res.status(400).json({ message: "User is currently assigned to an assessment." });
     }
 
     // ✅ Update Course Enrollment if User is a Learner

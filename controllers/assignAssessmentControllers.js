@@ -287,7 +287,7 @@ const getAllAssignedAssessmentByAssessmentId = async (req, res) => {
         // 🔍 Fetch all assignments for this assessment
         const assignments = await AssignAssessment.find({ assessmentId })
             .populate("userId", "name email")
-            .lean();
+            .lean();``
 
         if (assignments.length === 0) {
             return res.status(404).json({ message: "No assignments found for this assessment." });

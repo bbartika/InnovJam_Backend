@@ -1,9 +1,10 @@
 const Grade = require('../Model/gradeModel');
 const GradeRange = require('../Model/gradeRangeModel');
+const Assessment = require('../Model/assessment_model');
 
 const createGrade = async (req, res) => {
     try {
-        const { name, status } = req.body;
+        const { name } = req.body;
 
         if (!name) {
             return res.status(400).json({ error: 'All fields are required' });
@@ -43,6 +44,12 @@ const updateGrade = async (req, res) => {
 const removeGrade = async (req, res) => {
     const { id } = req.params;
     try {
+
+        const assessments = await Assessment.find({ grade_id: id });
+
+        if (assessments.length > 0) {
+            return res.status(400).json({ error: 'Cannot delete a grade with associated assessments' });
+        }
         const deletedGrade = await Grade.findByIdAndDelete(id);
 
         if (!deletedGrade) {

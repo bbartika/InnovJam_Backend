@@ -8,6 +8,7 @@ const Grade = require('../Model/gradeModel');
 const StudentAnswer = require('../Model/studentAnswer');
 const CourseSchema = require('../Model/CourseSchema_model');
 const AiModel = require('../Model/AIModel');
+const Course = require("../Model/CourseSchema_model");
 const mongoose = require("mongoose");
 const mongoIdVerification = require('../services/mongoIdValidation');
 
@@ -191,6 +192,12 @@ const removeAssessment = async (req, res) => {
     const assessment = await Assessment.findById(id);
     if (!assessment) {
       return res.status(404).json({ message: "Assessment not found" });
+    }
+
+    const assinedAssessment = await AssignAssessment.findOne({ assessmentId: id });
+
+    if (assinedAssessment) {
+      return res.status(400).json({ message: "Cannot delete an assessment with associated assignments" });
     }
 
     // 🗑️ Delete all questions linked to this assessment
