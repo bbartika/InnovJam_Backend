@@ -308,6 +308,18 @@ const updateQuestion_Temperature = async (req, res) => {
   }
 };
 
+const updateDurationTimming = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+
+  }
+
+  catch (error) {
+
+  }
+};
+
 module.exports = {
   removeAssessment,
   getQuestionsBasedOnAssessmentId,
