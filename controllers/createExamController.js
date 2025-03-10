@@ -47,9 +47,6 @@ const createAssessment = async (req, res) => {
     if (!assessment_name) {
       return res.status(400).json({ message: "Assessment name is required." });
     }
-
-
-
     // 🔍 Check if the course exists
 
     const course = await CourseSchema.findById(course_id);

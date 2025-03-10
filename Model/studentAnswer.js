@@ -19,6 +19,10 @@ const studentAnswerSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    student_response_formated: {
+        type: String,
+        default: null
+    },
     first_score: {
         type: String,
         default: null

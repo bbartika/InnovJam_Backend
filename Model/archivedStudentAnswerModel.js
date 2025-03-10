@@ -19,37 +19,29 @@ const archivedStudentAnswerSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    sbert_score: {
-        type: Number,
+    student_response_formated: {
+        type: String,
         default: null
     },
-    minilm_score: {
-        type: Number,
+    first_score: {
+        type: String,
         default: null
     },
-    labse_score: {
-        type: Number,
+    second_score: {
+        type: String,
         default: null
     },
-    gemini_score: {
-        type: Number,
-        default: null
+    first_score_feedback: {
+        type: String,
+        default: ''
     },
-    feedback: {
+    second_score_feedback: {
         type: String,
         default: ''
     },
     human_assess_remarks: {
         type: String,
         default: null
-    },
-    isCompetent: {
-        type: Boolean,
-        default: false
-    },
-    isMarked: {
-        type: Boolean,
-        default: false
     },
     archivedAt: {
         type: Date,

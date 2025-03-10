@@ -4,21 +4,21 @@ const Question = require('../Model/QuestionModel');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 const getAllArchiveStudentResponseByAssessmentId = async (req, res) => {
-    const { assessent_id } = req.query;
+    const { assessment_id } = req.query;
 
 
     try {
-        if (!mongoIdVerification(assessent_id)) {
+        if (!mongoIdVerification(assessment_id)) {
             return res.status(400).json({ message: "Invalid assessment ID.", status: false });
         }
 
-        const assignedAssessment = await Assigned.findOne({ assessmentId: assessent_id });
+        const assignedAssessment = await Assigned.findOne({ assessmentId: assessment_id });
 
         if (!assignedAssessment) {
             return res.status(404).json({ message: "Student answer not found.", status: false });
         }
 
-        const questions = await Question.find({ assessmentId: assessent_id });
+        const questions = await Question.find({ assessmentId: assessment_id });
 
         if (!questions || questions.length === 0) {
             return res.status(404).json({ message: "No questions found for this assessment.", status: false });

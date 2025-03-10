@@ -4,7 +4,7 @@ const mongoIdVerification = require('../services/mongoIdValidation');
 // 📌 Submit a student answer
 const studentAnswerResponse = async (req, res) => {
     try {
-        const { user_id, question_id, student_answer } = req.body;
+        const { user_id, question_id, student_answer, student_response_formated } = req.body;
 
         if (!mongoIdVerification(user_id) || !mongoIdVerification(question_id)) {
             return res.status(400).json({ success: false, message: "Invalid user ID or question ID." });
@@ -20,6 +20,7 @@ const studentAnswerResponse = async (req, res) => {
         if (existingAnswer) {
             // Update existing student answer
             existingAnswer.student_answer = student_answer;
+            existingAnswer.student_response_formated = student_response_formated;
             await existingAnswer.save();
             return res.status(200).json({
                 success: true,
@@ -33,6 +34,7 @@ const studentAnswerResponse = async (req, res) => {
                 question_id,
                 status: 1,
                 student_answer,
+                student_response_formated
             });
 
             await newAnswer.save();
@@ -48,7 +50,6 @@ const studentAnswerResponse = async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server error." });
     }
 };
-
 
 // 📌 Update a student's answer (including scores and feedback)
 const updateStudentAnswer = async (req, res) => {
