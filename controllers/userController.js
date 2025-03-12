@@ -23,11 +23,11 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid email format." });
     }
 
-    if (role === 'super_admin') {
-      return res.status(400).json({ message: "Invalid role." });
-    }
+    // if (role === 'super_admin') {
+    //   return res.status(400).json({ message: "Invalid role." });
+    // }
 
-    if (!['admin', 'learner', 'assessor', 'trainer'].includes(role)) {
+    if (!['super_admin', 'admin', 'learner', 'assessor', 'trainer'].includes(role)) {
       return res.status(400).json({ message: "Invalid role." });
     }
 
@@ -108,11 +108,11 @@ const createUsers = async (req, res) => {
           throw new Error("Invalid email format.");
         }
 
-        if (role === 'super_admin') {
-          throw new Error("Invalid role.");
-        }
+        // if (role === 'super_admin') {
+        //   throw new Error("Invalid role.");
+        // }
 
-        if (!['admin', 'learner', 'assessor', 'trainer'].includes(role)) {
+        if (!['super_admin', 'admin', 'learner', 'assessor', 'trainer'].includes(role)) {
           throw new Error("Invalid role.");
         }
 
@@ -161,6 +161,13 @@ const createUsers = async (req, res) => {
       }
     }
 
+    if (createdUsers.length === 0) {
+      return res.status(400).json({
+        message: "All users failed to be created.",
+        failedUsers
+      });
+    }
+
     // Respond with both the created and failed users
     res.status(201).json({
       message: "Bulk user creation process completed.",
@@ -206,7 +213,7 @@ const updateUser = async (req, res) => {
     }
 
     // ✅ Validate Role
-    if (role && !['admin', 'learner', 'assessor', 'trainer'].includes(role)) {
+    if (role && !['super_admin','admin', 'learner', 'assessor', 'trainer'].includes(role)) {
       return res.status(400).json({ message: "Invalid role." });
     }
 

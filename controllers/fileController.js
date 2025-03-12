@@ -5,6 +5,7 @@ const fs = require('fs');
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const path = require('path');
+const assessment = require("../Model/assessment_model");
 const { getIo } = require('../socket');
 
 // Function to extract text from a PDF file
