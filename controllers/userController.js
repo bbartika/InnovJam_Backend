@@ -284,6 +284,7 @@ const updateUser = async (req, res) => {
 const assignCourseToUser = async (req, res) => {
   const { id } = req.params;
   const { course_code } = req.body;
+
   try {
     // ✅ Fetch User
     const user = await User.findById(id);
@@ -303,12 +304,12 @@ const assignCourseToUser = async (req, res) => {
       return res.status(404).json({ message: "No valid courses found.", status: false });
     }
 
-    // ✅ Update User's Course List Without Duplicates
-    user.course_code = Array.from(new Set([...user.course_code, ...validCourseCodes]));
+    // ✅ Replace existing courses with new ones
+    user.course_code = validCourseCodes;
     await user.save();
 
     return res.status(200).json({
-      message: "Courses assigned to user successfully!",
+      message: "Courses updated for user successfully!",
       status: true,
       assignedCourses: validCourseCodes
     });
