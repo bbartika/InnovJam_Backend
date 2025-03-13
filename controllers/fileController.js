@@ -193,7 +193,6 @@ const deleteFileById = async (req, res) => {
       });
     }
 
-    getIo().emit('fileDeleted', file);
     res.status(200).json({ message: 'File deleted successfully' });
   } catch (error) {
     console.error('Error deleting file:', error);
