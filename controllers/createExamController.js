@@ -188,6 +188,7 @@ const removeAssessment = async (req, res) => {
 
     // 🔍 Check if the assessment exists
     const assessment = await Assessment.findById(id);
+    // Handle errors and return an error response
     if (!assessment) {
       return res.status(404).json({ message: "Assessment not found" });
     }
@@ -260,10 +261,97 @@ const getQuestionsForAssessment = async (req, res) => {
       assigned,
       assessmentdata
     });
+
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
+
+// const parseDuration = (duration) => {
+//   if (typeof duration === "string") {
+//     const match = duration.match(/^(\d+)(h|m|s)$/);
+//     if (match) {
+//       const value = parseInt(match[1], 10);
+//       const unit = match[2];
+
+//       switch (unit) {
+//         case "h":
+//           return value * 3600; // Convert hours to seconds
+//         case "m":
+//           return value * 60; // Convert minutes to seconds
+//         case "s":
+//           return value; // Already in seconds
+//         default:
+//           return NaN; // Invalid format
+//       }
+//     }
+//     return NaN; // If string is in an unknown format
+//   } else if (typeof duration === "number") {
+//     return duration; // Already a number (in seconds)
+//   }
+//   return NaN; // Invalid type
+// };
+
+// const getQuestionsForAssessment = async (req, res) => {
+//   const { id } = req.params;
+//   const { userId } = req.query;
+
+//   try {
+//     if (!mongoIdVerification(userId)) {
+//       return res.status(400).json({ message: "Invalid user ID." });
+//     }
+
+//     const assessment = await Assessment.findById(id);
+//     if (!assessment) {
+//       return res.status(404).json({ message: "Assessment not found" });
+//     }
+
+//     const assigned = await AssignAssessment.findOne({ userId, assessmentId: id });
+
+//     let durationInSeconds = parseDuration(assessment.duration);
+//     if (isNaN(durationInSeconds)) {
+//       return res.status(400).json({ message: "Invalid duration format" });
+//     }
+
+//     const startTime = new Date(assigned?.updatedAt || assessment.createdAt).getTime();
+//     const endTime = startTime + durationInSeconds * 1000;
+//     const remainingTime = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+
+//     const questions = await Question.find({ assessmentId: id })
+//       .select("-suggested_answer -comparison_count -temperature")
+//       .lean();
+
+//     const questionIds = questions.map((q) => q._id);
+
+//     const studentAnswers = await StudentAnswer.find({
+//       user_id: userId,
+//       question_id: { $in: questionIds },
+//     }).select("question_id status");
+
+//     const statusMap = new Map(studentAnswers.map((sa) => [sa.question_id.toString(), sa.status]));
+
+//     const questionsWithStatus = questions.map((q) => ({
+//       ...q,
+//       status: statusMap.get(q._id.toString()) || 0,
+//     }));
+
+//     const assessmentdata = {
+//       ...assessment.toObject(),
+//       questions: questionsWithStatus,
+//       remainingTime,
+//       formattedDuration: assessment.duration, // Return original duration as string
+//     };
+
+//     return res.status(200).json({
+//       success: true,
+//       assigned,
+//       assessmentdata,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({ message: "Internal Server Error", error: error.message });
+//   }
+// };
+
 
 const updateQuestion_Temperature = async (req, res) => {
   const questions = req.body;

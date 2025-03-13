@@ -41,6 +41,6 @@ const assessmentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'files'
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Assessment', assessmentSchema);
