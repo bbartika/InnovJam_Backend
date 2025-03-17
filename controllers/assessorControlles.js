@@ -86,6 +86,8 @@ const getStudentScore = async (req, res) => {
             question_id: { $in: questions.map(q => q._id) }
         });
 
+        console.log(studentAnswers)
+
         if (!studentAnswers || studentAnswers.length === 0) return res.status(404).json({ message: "No student answers found" });
 
         // Get AI Model Weightage
@@ -239,7 +241,6 @@ const getStudentAnswerResponse = async (req, res) => {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
-
 
 const getAIScoreReport = async (req, res) => {
     const { user_id, question_id } = req.query;

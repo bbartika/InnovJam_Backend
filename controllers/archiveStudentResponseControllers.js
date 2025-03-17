@@ -1,11 +1,12 @@
 const ArchivedStudentAnswer = require('../Model/archivedStudentAnswerModel');
 const Assigned = require('../Model/assignAssessmentSchema');
+const archiveStudentModal = require('../Model/archivedStudentAnswerModel');
+const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
 const mongoIdVerification = require('../services/mongoIdValidation');
 
 const getAllArchiveStudentResponseByAssessmentId = async (req, res) => {
     const { assessment_id } = req.query;
-
 
     try {
         if (!mongoIdVerification(assessment_id)) {
@@ -31,7 +32,6 @@ const getAllArchiveStudentResponseByAssessmentId = async (req, res) => {
         }
 
         return res.status(200).json({ studentAnswers: studentAnswers, status: true });
-
 
     }
     catch (error) {
@@ -81,8 +81,49 @@ const removeArchiveStudentResponse = async (req, res) => {
 
 }
 
+const archiveStudentResponse = async (req, res) => {
+    const { assessment_id, user_id } = req.query;
+
+    try {
+        // Validate IDs
+        if (!mongoIdVerification(assessment_id) || !mongoIdVerification(user_id)) {
+            return res.status(400).json({ message: "Invalid assessment ID or user ID.", status: false });
+        }
+
+        // Fetch all questions for the given assessment ID
+        const assessment = await Assessment.findOne({ _id: assessment_id });
+
+
+        if (!assessment) {
+            return res.status(404).json({ message: "Assessment not found.", status: false });
+        }
+
+        // Extract question IDs as an array of strings
+        const questionIds = await Question.find({ assessmentId: assessment_id }).distinct("_id");
+
+        // Fetch archived student responses using user_id and questionIds
+        const archivedResponses = await ArchivedStudentAnswer.find({
+            user_id: user_id,
+            question_id: { $in: questionIds }
+        });
+
+        // Remove duplicates if any
+        const uniqueResponses = Array.from(new Map(archivedResponses.map(item => [item._id.toString(), item])).values());
+
+        if (!uniqueResponses.length) {
+            return res.status(404).json({ message: "No archived responses found.", status: false });
+        }
+
+        return res.status(200).json({ message: "Archived responses retrieved.", data: uniqueResponses, status: true , questionIds });
+
+    } catch (error) {
+        return res.status(500).json({ message: "Internal server error", error: error.message, status: false });
+    }
+};
+
 module.exports = {
     removeArchiveStudentResponse,
     getAllArchiveStudentResponseByAssessmentId,
-    getArchiveStudentResponseByUserIdAndAssessentId
+    getArchiveStudentResponseByUserIdAndAssessentId,
+    archiveStudentResponse
 }

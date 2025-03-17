@@ -153,18 +153,14 @@ const udpateAssignedAssessment = async (req, res) => {
             return res.status(400).json({ message: "Invalid assignment ID." });
         }
 
-        const updatedAssignment = await AssignAssessment.findByIdAndUpdate(
-            id,
-            { status },
-            { new: true }
-        );
+        const assignment = await AssignAssessment.findById(id);
 
-        if (!updatedAssignment) {
+        if (!assignment) {
             return res.status(404).json({ message: "Assigned assessment not found" });
         }
 
         // Get Assessment and Questions
-        const assessment = await Assessment.findById(updatedAssignment.assessmentId);
+        const assessment = await Assessment.findById(assignment.assessmentId);
         const questions = await Question.find({ assessmentId: assessment._id.toString() });
         const aiModelDetail = await AIModel.findById(assessment.ai_model_id.toString());
         const gradeDetails = await GradeRange.find({ grade_id: assessment.grade_id.toString() });
@@ -172,10 +168,20 @@ const udpateAssignedAssessment = async (req, res) => {
 
         // Fetch Student Answers
         const studentAnswers = await StudentAnswer.find({
-            user_id: updatedAssignment.userId,
+            user_id: assignment.userId,
             question_id: { $in: questions.map(q => q._id) }
         });
 
+
+        if (studentAnswers.length != questions.length) {
+            const updatedAssignment = await AssignAssessment.findByIdAndUpdate(
+                id,
+                { status: "rejected" },
+                { new: true }
+            );
+
+            return res.status(404).json({ message: "No student answers found for this assessment.", status: false });
+        }
 
         // Prepare Data for AI Evaluation
         const studentQuestionDetails = studentAnswers.map(answer => {
@@ -222,8 +228,16 @@ const udpateAssignedAssessment = async (req, res) => {
 
         const data = await Promise.all(updatePromises);
 
+
+      await AssignAssessment.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true }
+        );
+
         return res.status(200).json({
-            message: "Assigned assessment updated and student answers evaluated"
+            message: "Assigned assessment updated and student answers evaluated",
+            status: true
         });
 
     } catch (error) {
@@ -287,7 +301,7 @@ const getAllAssignedAssessmentByAssessmentId = async (req, res) => {
         // 🔍 Fetch all assignments for this assessment
         const assignments = await AssignAssessment.find({ assessmentId })
             .populate("userId", "name email")
-            .lean();``
+            .lean(); ``
 
         if (assignments.length === 0) {
             return res.status(404).json({ message: "No assignments found for this assessment." });
