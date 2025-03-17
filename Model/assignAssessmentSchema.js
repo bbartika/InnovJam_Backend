@@ -11,6 +11,10 @@ const assignAssessmentSchema = new mongoose.Schema({
         ref: 'Assessment',
         required: true
     },
+    reaminigTime: {
+        type: Number,
+        required: true
+    },
     status: {
         type: String,
         required: true,

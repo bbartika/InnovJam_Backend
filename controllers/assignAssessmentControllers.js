@@ -69,7 +69,8 @@ const assignAssessment = async (req, res) => {
             .map(learner => ({
                 userId: learner._id,
                 assessmentId: assessmentId,
-                status: "pending"
+                status: "pending",
+                reaminigTime: assessment.duration
             }));
 
         if (newAssignments.length === 0) {
@@ -92,7 +93,6 @@ const assignAssessment = async (req, res) => {
 
 const reassignAssessment = async (req, res) => {
     const { userId, assessmentId } = req.body;
-
     try {
         if (!mongoIdVerification(userId) || !mongoIdVerification(assessmentId)) {
             return res.status(400).json({ message: "Invalid user ID or assessment ID." });
@@ -103,6 +103,12 @@ const reassignAssessment = async (req, res) => {
 
         if (!assignment) {
             return res.status(404).json({ message: "Assignment not found for the user.", status: false });
+        }
+
+        const assessment = await Assessment.findById(assessmentId);
+
+        if (!assessment) {
+            return res.status(404).json({ message: "Assessment not found.", status: false });
         }
 
         // 🔍 Fetch student answers
@@ -116,8 +122,11 @@ const reassignAssessment = async (req, res) => {
             await StudentAnswer.deleteMany({ user_id: userId });
         }
 
+
+
         // 🔄 Update assignment status to "in_progress"
         assignment.status = "in_progress";
+        assignAssessment.reaminigTime = assessment.duration
         await assignment.save();
 
         return res.status(200).json({ message: "Assessment reassigned successfully", assignment, status: true });
@@ -183,6 +192,15 @@ const udpateAssignedAssessment = async (req, res) => {
             return res.status(404).json({ message: "No student answers found for this assessment.", status: false });
         }
 
+        const updatedAssignedData = await AssignAssessment.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true }
+        );
+
+
+        console.log(updatedAssignedData +  " updated data ")
+
         // Prepare Data for AI Evaluation
         const studentQuestionDetails = studentAnswers.map(answer => {
             const question = questions.find(q => q._id.equals(answer.question_id));
@@ -229,11 +247,7 @@ const udpateAssignedAssessment = async (req, res) => {
         const data = await Promise.all(updatePromises);
 
 
-      await AssignAssessment.findByIdAndUpdate(
-            id,
-            { status },
-            { new: true }
-        );
+
 
         return res.status(200).json({
             message: "Assigned assessment updated and student answers evaluated",
