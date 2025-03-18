@@ -70,7 +70,7 @@ const assignAssessment = async (req, res) => {
                 userId: learner._id,
                 assessmentId: assessmentId,
                 status: "pending",
-                reaminigTime: assessment.duration
+                remainingTime: assessment.duration
             }));
 
         if (newAssignments.length === 0) {
@@ -126,7 +126,7 @@ const reassignAssessment = async (req, res) => {
 
         // 🔄 Update assignment status to "in_progress"
         assignment.status = "in_progress";
-        assignAssessment.reaminigTime = assessment.duration
+        assignAssessment.remainingTime = assessment.duration
         await assignment.save();
 
         return res.status(200).json({ message: "Assessment reassigned successfully", assignment, status: true });
@@ -199,7 +199,7 @@ const udpateAssignedAssessment = async (req, res) => {
         );
 
 
-        console.log(updatedAssignedData +  " updated data ")
+        console.log(updatedAssignedData + " updated data ")
 
         // Prepare Data for AI Evaluation
         const studentQuestionDetails = studentAnswers.map(answer => {
@@ -375,6 +375,24 @@ const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
     }
 };
 
+
+const updateRemainingTime = async (req, res) => {
+    const { id } = req.params;
+    const { remainingTime } = req.body;
+    try {
+
+        const updatedAssignment = await AssignAssessment.findByIdAndUpdate(id, { remainingTime }, { new: true });
+        if (!updatedAssignment) {
+            return res.status(404).json({ message: "Assignment not found" });
+        }
+
+        return res.status(200).json({ message: "Assignment updated successfully", assignment: updatedAssignment });
+
+    } catch (error) {
+        return res.status(500).json({ message: "Internal Server Error", error: error.message });
+    }
+};
+
 module.exports = {
     assignAssessment,
     reassignAssessment,
@@ -382,6 +400,7 @@ module.exports = {
     udpateAssignedAssessment,
     getAssignAssessmentByUserIdAndAssessmentId,
     getAllAssignedAssessmentByAssessmentId,
+    updateRemainingTime,
     getAssignedAssessmentsByUserIdAndCourseId
 }
 

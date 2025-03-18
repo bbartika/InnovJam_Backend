@@ -1,5 +1,5 @@
 const express = require("express");
-const   router = express.Router();
+const router = express.Router();
 
 const {
     assignAssessment,
@@ -8,7 +8,8 @@ const {
     udpateAssignedAssessment,
     getAssignAssessmentByUserIdAndAssessmentId,
     getAllAssignedAssessmentByAssessmentId,
-    getAssignedAssessmentsByUserIdAndCourseId
+    getAssignedAssessmentsByUserIdAndCourseId,
+    updateRemainingTime
 } = require("../controllers/assignAssessmentControllers");
 const validateObjectIdMiddleware = require('../middleware/mongoIdVerification');
 
@@ -18,6 +19,8 @@ router.get('/get-assessmentbycourse', getAssignedAssessmentsByUserIdAndCourseId)
 router.get('/get-assessment', getAssignAssessmentByUserIdAndAssessmentId);
 router.get('/get-assessment-by-assessmentId/:assessmentId', getAllAssignedAssessmentByAssessmentId);
 router.put('/update-assessment/:id', validateObjectIdMiddleware, udpateAssignedAssessment);
+router.put("/update-remaining-time/:id", validateObjectIdMiddleware, updateRemainingTime); // assigning id 
 router.delete('/remove-assessment/:id', validateObjectIdMiddleware, removeAssignedAssessment);
+
 
 module.exports = router;

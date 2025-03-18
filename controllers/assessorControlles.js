@@ -86,8 +86,6 @@ const getStudentScore = async (req, res) => {
             question_id: { $in: questions.map(q => q._id) }
         });
 
-        console.log(studentAnswers)
-
         if (!studentAnswers || studentAnswers.length === 0) return res.status(404).json({ message: "No student answers found" });
 
         // Get AI Model Weightage
