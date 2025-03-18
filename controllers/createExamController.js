@@ -213,85 +213,6 @@ const removeAssessment = async (req, res) => {
   }
 };
 
-const getQuestionsForAssessment = async (req, res) => {
-  const { id } = req.params;
-  const { userId } = req.query;
-
-  try {
-    if (!mongoIdVerification(userId)) {
-      return res.status(400).json({ message: "Invalid user ID." });
-    }
-
-    const assessment = await Assessment.findById(id);
-    if (!assessment) {
-      return res.status(404).json({ message: "Assessment not found" });
-    }
-
-    const assigned = await AssignAssessment.findOne({ userId, assessmentId: id });
-
-    // Fetch questions without `suggested_answer`
-    const questions = await Question.find({ assessmentId: id })
-      .select("-suggested_answer -comparison_count -temperature")
-      .lean();
-
-    const questionIds = questions.map(q => q._id);
-
-    // Fetch student answers for the given user and assessment questions
-    const studentAnswers = await StudentAnswer.find({
-      user_id: userId,
-      question_id: { $in: questionIds }
-    }).select("question_id status"); // Only fetch `status` field
-
-    // Create a Map for quick lookup of student answer statuses
-    const statusMap = new Map(studentAnswers.map(sa => [sa.question_id.toString(), sa.status]));
-
-    // Attach status to each question while keeping `suggested_answer` excluded
-    const questionsWithStatus = questions.map(q => ({
-      ...q,
-      status: statusMap.get(q._id.toString()) || 0 // Default to 0 if not found
-    }));
-
-    const assessmentdata = {
-      ...assessment.toObject(),
-      questions: questionsWithStatus
-    };
-
-    return res.status(200).json({
-      success: true,
-      assigned,
-      assessmentdata
-    });
-
-  } catch (error) {
-    return res.status(500).json({ message: "Internal Server Error", error: error.message });
-  }
-};
-
-// const parseDuration = (duration) => {
-//   if (typeof duration === "string") {
-//     const match = duration.match(/^(\d+)(h|m|s)$/);
-//     if (match) {
-//       const value = parseInt(match[1], 10);
-//       const unit = match[2];
-
-//       switch (unit) {
-//         case "h":
-//           return value * 3600; // Convert hours to seconds
-//         case "m":
-//           return value * 60; // Convert minutes to seconds
-//         case "s":
-//           return value; // Already in seconds
-//         default:
-//           return NaN; // Invalid format
-//       }
-//     }
-//     return NaN; // If string is in an unknown format
-//   } else if (typeof duration === "number") {
-//     return duration; // Already a number (in seconds)
-//   }
-//   return NaN; // Invalid type
-// };
-
 // const getQuestionsForAssessment = async (req, res) => {
 //   const { id } = req.params;
 //   const { userId } = req.query;
@@ -308,49 +229,151 @@ const getQuestionsForAssessment = async (req, res) => {
 
 //     const assigned = await AssignAssessment.findOne({ userId, assessmentId: id });
 
-//     let durationInSeconds = parseDuration(assessment.duration);
-//     if (isNaN(durationInSeconds)) {
-//       return res.status(400).json({ message: "Invalid duration format" });
-//     }
-
-//     const startTime = new Date(assigned?.updatedAt || assessment.createdAt).getTime();
-//     const endTime = startTime + durationInSeconds * 1000;
-//     const remainingTime = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
-
+//     // Fetch questions without `suggested_answer`
 //     const questions = await Question.find({ assessmentId: id })
 //       .select("-suggested_answer -comparison_count -temperature")
 //       .lean();
 
-//     const questionIds = questions.map((q) => q._id);
+//     const questionIds = questions.map(q => q._id);
 
+//     // Fetch student answers for the given user and assessment questions
 //     const studentAnswers = await StudentAnswer.find({
 //       user_id: userId,
-//       question_id: { $in: questionIds },
-//     }).select("question_id status");
+//       question_id: { $in: questionIds }
+//     }).select("question_id status"); // Only fetch `status` field
 
-//     const statusMap = new Map(studentAnswers.map((sa) => [sa.question_id.toString(), sa.status]));
+//     // Create a Map for quick lookup of student answer statuses
+//     const statusMap = new Map(studentAnswers.map(sa => [sa.question_id.toString(), sa.status]));
 
-//     const questionsWithStatus = questions.map((q) => ({
+//     // Attach status to each question while keeping `suggested_answer` excluded
+//     const questionsWithStatus = questions.map(q => ({
 //       ...q,
-//       status: statusMap.get(q._id.toString()) || 0,
+//       status: statusMap.get(q._id.toString()) || 0 // Default to 0 if not found
 //     }));
 
 //     const assessmentdata = {
 //       ...assessment.toObject(),
-//       questions: questionsWithStatus,
-//       remainingTime,
-//       formattedDuration: assessment.duration, // Return original duration as string
+//       questions: questionsWithStatus
 //     };
 
 //     return res.status(200).json({
 //       success: true,
 //       assigned,
-//       assessmentdata,
+//       assessmentdata
 //     });
+
 //   } catch (error) {
 //     return res.status(500).json({ message: "Internal Server Error", error: error.message });
 //   }
 // };
+
+
+const getQuestionsForAssessment = async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.query;
+
+  try {
+    if (!mongoIdVerification(userId)) {
+      return res.status(400).json({ message: "Invalid user ID." });
+    }
+
+    const assessment = await Assessment.findById(id);
+    if (!assessment) {
+      return res.status(404).json({ message: "Assessment not found" });
+    }
+
+    const assigned = await AssignAssessment.findOne({ userId, assessmentId: id });
+
+    if (!assigned) {
+      return res.status(404).json({ message: "Assignment not found" });
+    }
+
+    // Check if the remaining time is already zero or status is already updated
+    if (assigned.remainingTime <= 0) {
+      await handleTimeCompletion(userId, id, assigned);
+      return res.status(200).json({
+        success: true,
+        message: "Time is over. Assessment status updated.",
+      });
+    }
+
+    // Reduce remaining time by 5 seconds (or adjust as per frequency)
+    const updatedRemainingTime = Math.max(assigned.remainingTime - 5, 0);
+
+    // If time reaches zero, update status accordingly
+    if (updatedRemainingTime === 0) {
+      await handleTimeCompletion(userId, id, assigned);
+    } else {
+      // Update remainingTime in DB only if time is still left
+      await AssignAssessment.updateOne(
+        { _id: assigned._id },
+        { remainingTime: updatedRemainingTime }
+      );
+    }
+
+    // Fetch questions without `suggested_answer`
+    const questions = await Question.find({ assessmentId: id })
+      .select("-suggested_answer -comparison_count -temperature")
+      .lean();
+
+    const questionIds = questions.map((q) => q._id);
+
+    // Fetch student answers for the given user and assessment questions
+    const studentAnswers = await StudentAnswer.find({
+      user_id: userId,
+      question_id: { $in: questionIds },
+    }).select("question_id status"); // Only fetch `status` field
+
+    // Create a Map for quick lookup of student answer statuses
+    const statusMap = new Map(
+      studentAnswers.map((sa) => [sa.question_id.toString(), sa.status])
+    );
+
+    // Attach status to each question while keeping `suggested_answer` excluded
+    const questionsWithStatus = questions.map((q) => ({
+      ...q,
+      status: statusMap.get(q._id.toString()) || 0, // Default to 0 if not found
+    }));
+
+    const assessmentdata = {
+      ...assessment.toObject(),
+      questions: questionsWithStatus,
+    };
+
+    return res.status(200).json({
+      success: true,
+      assigned: {
+        ...assigned.toObject(),
+        remainingTime: updatedRemainingTime,
+      },
+      assessmentdata,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+// Handle time completion logic
+const handleTimeCompletion = async (userId, assessmentId, assigned) => {
+  const questionsCount = await Question.countDocuments({ assessmentId });
+  const studentAnswersCount = await StudentAnswer.countDocuments({
+    user_id: userId,
+    assessment_id: assessmentId,
+  });
+
+  // Determine the status based on answers
+  const status = studentAnswersCount === questionsCount ? "completed" : "rejected";
+
+  // Update the status and remainingTime in AssignAssessment
+  await AssignAssessment.updateOne(
+    { _id: assigned._id },
+    { status, remainingTime: 0 }
+  );
+
+  console.log(`Assessment status updated to "${status}" for user: ${userId}`);
+};
 
 
 const updateQuestion_Temperature = async (req, res) => {
@@ -394,17 +417,7 @@ const updateQuestion_Temperature = async (req, res) => {
   }
 };
 
-const updateDurationTimming = async (req, res) => {
-  const { id } = req.params;
 
-  try {
-
-  }
-
-  catch (error) {
-
-  }
-};
 
 module.exports = {
   removeAssessment,

@@ -9,7 +9,7 @@ const {
     getAssignAssessmentByUserIdAndAssessmentId,
     getAllAssignedAssessmentByAssessmentId,
     getAssignedAssessmentsByUserIdAndCourseId,
-    updateRemainingTime
+    checkAllInProgressAssessments
 } = require("../controllers/assignAssessmentControllers");
 const validateObjectIdMiddleware = require('../middleware/mongoIdVerification');
 
@@ -19,7 +19,7 @@ router.get('/get-assessmentbycourse', getAssignedAssessmentsByUserIdAndCourseId)
 router.get('/get-assessment', getAssignAssessmentByUserIdAndAssessmentId);
 router.get('/get-assessment-by-assessmentId/:assessmentId', getAllAssignedAssessmentByAssessmentId);
 router.put('/update-assessment/:id', validateObjectIdMiddleware, udpateAssignedAssessment);
-router.put("/update-remaining-time/:id", validateObjectIdMiddleware, updateRemainingTime); // assigning id 
+router.put("/update-remaining-time", checkAllInProgressAssessments); // assigning id 
 router.delete('/remove-assessment/:id', validateObjectIdMiddleware, removeAssignedAssessment);
 
 
