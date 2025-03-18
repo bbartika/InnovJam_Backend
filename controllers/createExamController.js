@@ -284,77 +284,43 @@ const getQuestionsForAssessment = async (req, res) => {
 
     const assigned = await AssignAssessment.findOne({ userId, assessmentId: id });
 
-    if (!assigned) {
-      return res.status(404).json({ message: "Assignment not found" });
-    }
-
-    // Check if the remaining time is already zero or status is already updated
-    if (assigned.remainingTime <= 0) {
-      await handleTimeCompletion(userId, id, assigned);
-      return res.status(200).json({
-        success: true,
-        message: "Time is over. Assessment status updated.",
-      });
-    }
-
-    // Reduce remaining time by 5 seconds (or adjust as per frequency)
-    const updatedRemainingTime = Math.max(assigned.remainingTime - 5, 0);
-
-    // If time reaches zero, update status accordingly
-    if (updatedRemainingTime === 0) {
-      await handleTimeCompletion(userId, id, assigned);
-    } else {
-      // Update remainingTime in DB only if time is still left
-      await AssignAssessment.updateOne(
-        { _id: assigned._id },
-        { remainingTime: updatedRemainingTime }
-      );
-    }
-
     // Fetch questions without `suggested_answer`
     const questions = await Question.find({ assessmentId: id })
       .select("-suggested_answer -comparison_count -temperature")
       .lean();
 
-    const questionIds = questions.map((q) => q._id);
+    const questionIds = questions.map(q => q._id);
 
     // Fetch student answers for the given user and assessment questions
     const studentAnswers = await StudentAnswer.find({
       user_id: userId,
-      question_id: { $in: questionIds },
+      question_id: { $in: questionIds }
     }).select("question_id status"); // Only fetch `status` field
 
     // Create a Map for quick lookup of student answer statuses
-    const statusMap = new Map(
-      studentAnswers.map((sa) => [sa.question_id.toString(), sa.status])
-    );
+    const statusMap = new Map(studentAnswers.map(sa => [sa.question_id.toString(), sa.status]));
 
     // Attach status to each question while keeping `suggested_answer` excluded
-    const questionsWithStatus = questions.map((q) => ({
+    const questionsWithStatus = questions.map(q => ({
       ...q,
-      status: statusMap.get(q._id.toString()) || 0, // Default to 0 if not found
+      status: statusMap.get(q._id.toString()) || 0 // Default to 0 if not found
     }));
 
     const assessmentdata = {
       ...assessment.toObject(),
-      questions: questionsWithStatus,
+      questions: questionsWithStatus
     };
 
     return res.status(200).json({
       success: true,
-      assigned: {
-        ...assigned.toObject(),
-        remainingTime: updatedRemainingTime,
-      },
-      assessmentdata,
+      assigned,
+      assessmentdata
     });
+
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Internal Server Error", error: error.message });
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 };
-
 // Handle time completion logic
 const handleTimeCompletion = async (userId, assessmentId, assigned) => {
   const questionsCount = await Question.countDocuments({ assessmentId });

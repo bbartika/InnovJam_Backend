@@ -50,63 +50,6 @@ app.get('/', (req, res) => {
   res.send('Welcome to the server!');
 });
 
-// app.all('*', (req, res) => {
-//   res.status(404).send(`
-//       <!DOCTYPE html>
-//       <html lang="en">
-//       <head>
-//           <meta charset="UTF-8">
-//           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-//           <title>404 Not Found</title>
-//           <style>
-//               body {
-//                   display: flex;
-//                   justify-content: center;
-//                   align-items: center;
-//                   height: 100vh;
-//                   background-color: #f4f4f4;
-//                   font-family: Arial, sans-serif;
-//                   margin: 0;
-//                   text-align: center;
-//               }
-//               .container {
-//                   background: white;
-//                   padding: 20px;
-//                   border-radius: 10px;
-//                   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-//               }
-//               h1 {
-//                   font-size: 48px;
-//                   color: #ff4757;
-//                   margin: 0;
-//               }
-//               p {
-//                   font-size: 18px;
-//                   color: #333;
-//               }
-//               a {
-//                   text-decoration: none;
-//                   color: #007bff;
-//                   font-weight: bold;
-//               }
-//               a:hover {
-//                   text-decoration: underline;
-//               }
-//           </style>
-//       </head>
-//       <body>
-//           <div class="container">
-//               <h1>404</h1>
-//               <p>Oops! The page you are looking for does not exist.</p>
-//               <p><a href="/">Go Back Home</a></p>
-//           </div>
-//       </body>
-//       </html>
-//   `);
-// });
-
-
-
 // Start the server on the specified port
 const PORT = process.env.PORT || 9100;
 
