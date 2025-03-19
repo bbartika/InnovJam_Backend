@@ -125,7 +125,7 @@ const reassignAssessment = async (req, res) => {
 
 
         // 🔄 Update assignment status to "in_progress"
-        assignment.status = "in_progress";
+        assignment.status = "pending";
         assignAssessment.remainingTime = assessment.duration
         await assignment.save();
 
