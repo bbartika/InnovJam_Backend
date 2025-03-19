@@ -157,7 +157,7 @@ const getStudentAnswerByQuestionId = async (req, res) => {
             return res.status(400).json({ success: false, message: "user_id and question_id are required." });
         }
 
-        const answer = await StudentAnswer.findOne({ user_id, question_id }).select('student_answer');
+        const answer = await StudentAnswer.findOne({ user_id, question_id }).select('student_answer student_response_formated');
 
         if (!answer) {
             return res.status(404).json({ success: false, message: "Student answer not found." });
@@ -165,6 +165,7 @@ const getStudentAnswerByQuestionId = async (req, res) => {
 
         return res.status(200).json({
             success: true,
+            student_response_formated : answer.student_response_formated,
             student_answer: answer.student_answer,
         });
 
