@@ -93,20 +93,19 @@ const assignAssessment = async (req, res) => {
 
 const reassignAssessment = async (req, res) => {
     const { userId, assessmentId } = req.body;
+
     try {
         if (!mongoIdVerification(userId) || !mongoIdVerification(assessmentId)) {
-            return res.status(400).json({ message: "Invalid user ID or assessment ID." });
+            return res.status(400).json({ message: "Invalid user ID or assessment ID.", status: false });
         }
 
         // 🔍 Check if the assignment exists
         const assignment = await AssignAssessment.findOne({ userId, assessmentId });
-
         if (!assignment) {
             return res.status(404).json({ message: "Assignment not found for the user.", status: false });
         }
 
         const assessment = await Assessment.findById(assessmentId);
-
         if (!assessment) {
             return res.status(404).json({ message: "Assessment not found.", status: false });
         }
@@ -115,22 +114,38 @@ const reassignAssessment = async (req, res) => {
         const studentAnswers = await StudentAnswer.find({ user_id: userId });
 
         if (studentAnswers.length > 0) {
-            // 🔄 Store previous responses in an archive collection
-            await ArchivedStudentAnswer.insertMany(studentAnswers.map(ans => ({ ...ans.toObject(), archivedAt: new Date() })));
+            // 🔄 Loop through student answers and update/override if already exists
+            for (const ans of studentAnswers) {
+                const answerData = ans.toObject();
+                delete answerData._id; // ❗️ Remove _id before inserting/updating
 
-            // 🔄 Remove previous responses
+                await ArchivedStudentAnswer.updateOne(
+                    {
+                        user_id: ans.user_id,
+                        question_id: ans.question_id
+                    },
+                    {
+                        $set: {
+                            ...answerData,
+                            archivedAt: new Date()
+                        }
+                    },
+                    { upsert: true } // Create a new document if not found
+                );
+            }
+
+            // 🔄 Remove previous responses from StudentAnswer
             await StudentAnswer.deleteMany({ user_id: userId });
         }
 
-
-
-        // 🔄 Update assignment status to "in_progress"
+        // 🔄 Update assignment status to "pending"
         assignment.status = "pending";
-        assignAssessment.remainingTime = assessment.duration
+        assignment.remainingTime = assessment.duration; // Fix typo: assignAssessment -> assignment
         await assignment.save();
 
         return res.status(200).json({ message: "Assessment reassigned successfully", assignment, status: true });
     } catch (error) {
+        console.error("Error:", error);
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
@@ -378,94 +393,94 @@ const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
 
 const checkAllInProgressAssessments = async (req, res) => {
     try {
-      // Fetch all assigned assessments with status 'in_progress'
-      const inProgressAssignments = await AssignAssessment.find({
-        status: "in_progress",
-      });
-  
-      if (inProgressAssignments.length === 0) {
-        return res.status(200).json({
-          success: true,
-          message: "No assessments are currently in progress.",
-          assessments: [],
+        // Fetch all assigned assessments with status 'in_progress'
+        const inProgressAssignments = await AssignAssessment.find({
+            status: "in_progress",
         });
-      }
-  
-      const currentTime = new Date();
-      const updatedAssessments = [];
-  
-      for (const assigned of inProgressAssignments) {
-        // Calculate elapsed time since last update
-        const lastUpdatedTime = new Date(assigned.updatedAt);
-        const elapsedTimeInSeconds = Math.floor(
-          (currentTime - lastUpdatedTime) / 1000
-        );
-  
-        // Calculate the new remaining time
-        const remainingTime = Math.max(
-          assigned.remainingTime - elapsedTimeInSeconds,
-          0
-        );
-  
-        if (remainingTime === 0) {
-          // Time is over, check if the assessment should be completed or rejected
-          await handleTimeCompletion(assigned.userId, assigned.assessmentId, assigned);
-          assigned.status = "completed" || "rejected";
-          assigned.remainingTime = 0;
-          assigned.updatedAt = new Date();
-        } else {
-          // If time is still left, update remainingTime without changing status
-          assigned.remainingTime = remainingTime;
+
+        if (inProgressAssignments.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: "No assessments are currently in progress.",
+                assessments: [],
+            });
         }
-  
-        // Add to updated list
-        updatedAssessments.push({
-          _id: assigned._id,
-          userId: assigned.userId,
-          assessmentId: assigned.assessmentId,
-          status: assigned.status,
-          remainingTime: assigned.remainingTime,
-          updatedAt: assigned.updatedAt,
+
+        const currentTime = new Date();
+        const updatedAssessments = [];
+
+        for (const assigned of inProgressAssignments) {
+            // Calculate elapsed time since last update
+            const lastUpdatedTime = new Date(assigned.updatedAt);
+            const elapsedTimeInSeconds = Math.floor(
+                (currentTime - lastUpdatedTime) / 1000
+            );
+
+            // Calculate the new remaining time
+            const remainingTime = Math.max(
+                assigned.remainingTime - elapsedTimeInSeconds,
+                0
+            );
+
+            if (remainingTime === 0) {
+                // Time is over, check if the assessment should be completed or rejected
+                await handleTimeCompletion(assigned.userId, assigned.assessmentId, assigned);
+                assigned.status = "completed" || "rejected";
+                assigned.remainingTime = 0;
+                assigned.updatedAt = new Date();
+            } else {
+                // If time is still left, update remainingTime without changing status
+                assigned.remainingTime = remainingTime;
+            }
+
+            // Add to updated list
+            updatedAssessments.push({
+                _id: assigned._id,
+                userId: assigned.userId,
+                assessmentId: assigned.assessmentId,
+                status: assigned.status,
+                remainingTime: assigned.remainingTime,
+                updatedAt: assigned.updatedAt,
+            });
+
+            // Save the updated assignment
+            await assigned.save();
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "In-progress assessments updated successfully.",
+            assessments: updatedAssessments,
         });
-  
-        // Save the updated assignment
-        await assigned.save();
-      }
-  
-      return res.status(200).json({
-        success: true,
-        message: "In-progress assessments updated successfully.",
-        assessments: updatedAssessments,
-      });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ message: "Internal Server Error", error: error.message });
+        return res
+            .status(500)
+            .json({ message: "Internal Server Error", error: error.message });
     }
-  };
-  
-  // Handle time completion logic
-  const handleTimeCompletion = async (userId, assessmentId, assigned) => {
+};
+
+// Handle time completion logic
+const handleTimeCompletion = async (userId, assessmentId, assigned) => {
     const questionsCount = await Question.countDocuments({ assessmentId });
     const studentAnswersCount = await StudentAnswer.countDocuments({
-      user_id: userId,
-      assessment_id: assessmentId,
+        user_id: userId,
+        assessment_id: assessmentId,
     });
-  
+
     // Determine the status based on answers
     const status = studentAnswersCount === questionsCount ? "completed" : "rejected";
-  
+
     // Update status and remainingTime in AssignAssessment
     await AssignAssessment.updateOne(
-      { _id: assigned._id },
-      { status, remainingTime: 0, updatedAt: new Date() }
+        { _id: assigned._id },
+        { status, remainingTime: 0, updatedAt: new Date() }
     );
-  
+
     console.log(
-      `Assessment status updated to "${status}" for user: ${userId}`
+        `Assessment status updated to "${status}" for user: ${userId}`
     );
-  };
-  
+};
+
 
 module.exports = {
     assignAssessment,
