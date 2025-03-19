@@ -15,6 +15,10 @@ const questionSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    Suggested_answer_points_count: {
+        type: Number,
+        default: 0
+    },
     temperature: {
         type: Number,
         default: 0

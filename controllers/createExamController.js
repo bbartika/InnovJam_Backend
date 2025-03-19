@@ -78,7 +78,7 @@ const createAssessment = async (req, res) => {
       return res.status(500).json({ success: false, message: aiResponse.error });
     }
 
-    const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration } = aiResponse;
+    const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration , Suggested_answer_points_count } = aiResponse;
 
     if (!assessment_type || !assessment_instruction || !questions_and_answers) {
       return res.status(400).json({ success: false, message: "Invalid AI response. Please try again." });
@@ -123,7 +123,8 @@ const createAssessment = async (req, res) => {
       question_instruction: q.question_instruction || "",
       suggested_answer: q.suggested_answer || [],
       comparison_instruction: q.comparison_instruction || "",
-      comparison_count: q.comparison_count || 0
+      comparison_count: q.comparison_count || 0,
+      Suggested_answer_points_count: q.Suggested_answer_points_count
     }));
 
     await Question.insertMany(questionDocuments);
