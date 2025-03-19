@@ -139,6 +139,9 @@ const archiveStudentResponse = async (req, res) => {
             return res.status(404).json({ message: "Assessment not found.", status: false });
         }
 
+        const aiDetails = await AiModel.findById(assessment.ai_model_id);
+
+
         // Get all question IDs for the given assessment
         const questions = await Question.find({ assessmentId: assessment_id });
 
@@ -167,6 +170,7 @@ const archiveStudentResponse = async (req, res) => {
             const question = questionMap.get(response.question_id.toString());
             return {
                 ...response.toObject(),
+                aiDetails,
                 question: question ? question.toObject() : null
             };
         });
@@ -368,6 +372,8 @@ const getStudentArchivedScore = async (req, res) => {
             const first_score = parseFloat(answer.first_score || 0) * firstWeightage;
             const second_score = parseFloat(answer.second_score || 0) * secondWeightage;
 
+            console.log(first_score + " -> " + second_score);
+
             const sum = first_score + second_score; // Total score for this question
 
             // ✅ Find the grade label for the score sum
@@ -384,6 +390,7 @@ const getStudentArchivedScore = async (req, res) => {
             studentScores[userId].total_second_score += parseFloat(answer.second_score || 0);
             studentScores[userId].labels.push(label);
         });
+
 
         // ✅ Process final results for each student
         const result = students.map(student => {
