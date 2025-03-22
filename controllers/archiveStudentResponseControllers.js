@@ -5,7 +5,7 @@ const Assessment = require("../Model/assessment_model");
 const Question = require('../Model/QuestionModel');
 const AiModel = require("../Model/AIModel");
 const GradeRange = require('../Model/gradeRangeModel');
-const User  = require("../Model/UserModel");
+const User = require("../Model/UserModel");
 const Course = require("../Model/CourseSchema_model");
 const mongoIdVerification = require('../services/mongoIdValidation');
 
@@ -85,45 +85,6 @@ const removeArchiveStudentResponse = async (req, res) => {
 
 }
 
-// const archiveStudentResponse = async (req, res) => {
-//     const { assessment_id, user_id } = req.query;
-//     try {
-//         // Validate IDs
-//         if (!mongoIdVerification(assessment_id) || !mongoIdVerification(user_id)) {
-//             return res.status(400).json({ message: "Invalid assessment ID or user ID.", status: false });
-//         }
-
-//         // Fetch all questions for the given assessment ID
-//         const assessment = await Assessment.findOne({ _id: assessment_id });
-
-
-//         if (!assessment) {
-//             return res.status(404).json({ message: "Assessment not found.", status: false });
-//         }
-
-//         // Extract question IDs as an array of strings
-//         const questionIds = await Question.find({ assessmentId: assessment_id }).distinct("_id");
-
-//         // Fetch archived student responses using user_id and questionIds
-//         const archivedResponses = await ArchivedStudentAnswer.find({
-//             user_id: user_id,
-//             question_id: { $in: questionIds }
-//         });
-
-//         // Remove duplicates if any
-//         const uniqueResponses = Array.from(new Map(archivedResponses.map(item => [item._id.toString(), item])).values());
-
-//         if (!uniqueResponses.length) {
-//             return res.status(404).json({ message: "No archived responses found.", status: false });
-//         }
-
-//         return res.status(200).json({ message: "Archived responses retrieved.", data: uniqueResponses, status: true  });
-
-//     } catch (error) {
-//         return res.status(500).json({ message: "Internal server error", error: error.message, status: false });
-//     }
-// };
-
 const archiveStudentResponse = async (req, res) => {
     const { assessment_id, user_id } = req.query;
     try {
@@ -187,85 +148,115 @@ const archiveStudentResponse = async (req, res) => {
 //     const { assessment_id } = req.query;
 
 //     try {
+//         // ✅ Validate assessment ID
 //         if (!mongoIdVerification(assessment_id)) {
-//             return res.status(400).json({ message: "Invalid assessment ID." });
+//             return res.status(400).json({ message: "Invalid assessment ID.", status: false });
 //         }
 
+//         // ✅ Fetch assessment without unnecessary fields
 //         const assessment = await Assessment.findById(assessment_id).select("-assessment_instruction -case_study_context");
-//         if (!assessment) return res.status(404).json({ message: "Assessment not found" });
+//         if (!assessment) {
+//             return res.status(404).json({ message: "Assessment not found.", status: false });
+//         }
 
+//         // ✅ Fetch course details
 //         const course_details = await Course.findById(assessment.courseId);
-//         if (!course_details) return res.status(404).json({ message: "Course not found" });
+//         if (!course_details) {
+//             return res.status(404).json({ message: "Course not found.", status: false });
+//         }
 
+//         // ✅ Fetch AI Model details
 //         const AiModelDetails = await AiModel.findById(assessment.ai_model_id);
-//         if (!AiModelDetails) return res.status(404).json({ message: "AI Model not found" });
+//         if (!AiModelDetails) {
+//             return res.status(404).json({ message: "AI Model not found.", status: false });
+//         }
 
+//         // ✅ Fetch grade ranges
 //         const gradeRanges = await GradeRange.find({ grade_id: assessment.grade_id });
+//         if (!gradeRanges || gradeRanges.length === 0) {
+//             return res.status(404).json({ message: "Grade ranges not found.", status: false });
+//         }
 
+//         // ✅ Fetch questions related to the assessment
 //         const questions = await Question.find({ assessmentId: assessment_id }).select("_id");
-//         if (!questions || questions.length === 0) return res.status(404).json({ message: "Questions not found" });
+//         if (!questions || questions.length === 0) {
+//             return res.status(404).json({ message: "No questions found for this assessment.", status: false });
+//         }
 
+//         // ✅ Fetch assigned students for this assessment
 //         const assignedData = await Assigned.find({ assessmentId: assessment_id }).select("userId status");
-//         if (!assignedData || assignedData.length === 0) return res.status(404).json({ message: "No assigned students found" });
+//         if (!assignedData || assignedData.length === 0) {
+//             return res.status(404).json({ message: "No assigned students found.", status: false });
+//         }
 
-//         // Get student IDs
+//         // ✅ Get student IDs
 //         const studentIds = assignedData.map(a => a.userId);
-//         // Fetch questions and assigned student IDs
 
-//         // 🔹 Fetch Student Details from DB
+//         // ✅ Fetch student details
 //         const students = await User.find({ _id: { $in: studentIds } }).select("_id name email");
-//         if (!students || students.length === 0) return res.status(404).json({ message: "Students not found" });
+//         if (!students || students.length === 0) {
+//             return res.status(404).json({ message: "Students not found.", status: false });
+//         }
 
-//         // Fetch student answers
+//         // ✅ Fetch student archived answers
 //         const studentAnswers = await archiveStudentModal.find({
 //             user_id: { $in: studentIds },
-//             question_id: { $in: questions.map(q => q._id) }
-//         // Fetch student details and answers
+//             question_id: { $in: questions.map(q => q._id) },
 //         });
 
-//         if (!studentAnswers || studentAnswers.length === 0) return res.status(404).json({ message: "No student answers found" });
+//         if (!studentAnswers || studentAnswers.length === 0) {
+//             return res.status(404).json({ message: "No student answers found.", status: false });
+//         }
 
-//         // Get AI Model Weightage
+//         // ✅ Validate AI Model weightage
 //         const weightage = AiModelDetails.weightage.map(Number);
-//         if (weightage.length !== 2) return res.status(500).json({ message: "Invalid AI Model Weightage" });
+//         if (weightage.length !== 2 || weightage[0] + weightage[1] !== 100) {
+//             return res.status(500).json({ message: "Invalid AI Model Weightage. The sum of weightages should be 100.", status: false });
+//         }
 
+//         // ✅ Weightage values
 //         const firstWeightage = weightage[0] / 100;
 //         const secondWeightage = weightage[1] / 100;
 
 //         const studentScores = {};
 
-//         // Calculate scores and determine competency for each question
+//         // ✅ Calculate scores and determine competency for each question
 //         studentAnswers.forEach(answer => {
 //             const userId = answer.user_id.toString();
 
-//             const first_score = parseFloat(answer.first_score) * firstWeightage;
-//             const second_score = parseFloat(answer.second_score) * secondWeightage;
+//             // Handle null scores by assigning 0
+//             const first_score = parseFloat(answer.first_score || 0) * firstWeightage;
+//             const second_score = parseFloat(answer.second_score || 0) * secondWeightage;
+
+//             console.log(first_score + " -> " + second_score);
 
 //             const sum = first_score + second_score; // Total score for this question
 
-//             // Find the grade label for this sum
+//             // ✅ Find the grade label for the score sum
 //             const grade = gradeRanges.find(range => sum >= range.startRange && sum <= range.endRange);
-//             const label = grade ? grade.label : "not-competent"; // Default label if not found
+//             const label = grade ? grade.label : "not-competent"; // Default label if grade not found
 
-//             // Initialize student's record if not present
+//             // ✅ Initialize student record if not present
 //             if (!studentScores[userId]) {
 //                 studentScores[userId] = { total_first_score: 0, total_second_score: 0, labels: [] };
 //             }
 
-//             // Accumulate scores and store competency label for each question
-//             studentScores[userId].total_first_score += parseFloat(answer.first_score);
-//             studentScores[userId].total_second_score += parseFloat(answer.second_score);
-//             studentScores[userId].labels.push(label); // Store competency for this question
+//             // ✅ Accumulate scores and store competency label for each question
+//             studentScores[userId].total_first_score += parseFloat(answer.first_score || 0);
+//             studentScores[userId].total_second_score += parseFloat(answer.second_score || 0);
+//             studentScores[userId].labels.push(label);
 //         });
 
-//         // Process final results
+
+//         // ✅ Process final results for each student
 //         const result = students.map(student => {
 //             const userId = student._id.toString();
 //             const scores = studentScores[userId] || { total_first_score: 0, total_second_score: 0, labels: [] };
 
+//             // ✅ Calculate final score
 //             const final_score = (scores.total_first_score * firstWeightage) + (scores.total_second_score * secondWeightage);
 
-//             // Determine overall competency based on all question labels
+//             // ✅ Determine overall competency
 //             const isCompetent = scores.labels.every(label => label === "competent");
 
 //             return {
@@ -278,14 +269,22 @@ const archiveStudentResponse = async (req, res) => {
 //             };
 //         });
 
-//         return res.status(200).json({ assessment, result });
+//         return res.status(200).json({
+//             message: "Student archived scores retrieved successfully.",
+//             assessment,
+//             result,
+//             status: true
+//         });
 
 //     } catch (error) {
-//         console.error(error);
-//         return res.status(500).json({ message: "Internal Server Error", error: error.message });
+//         console.error("Error:", error);
+//         return res.status(500).json({
+//             message: "Internal Server Error.",
+//             error: error.message,
+//             status: false
+//         });
 //     }
 // };
-
 
 
 const getStudentArchivedScore = async (req, res) => {
@@ -358,9 +357,9 @@ const getStudentArchivedScore = async (req, res) => {
             return res.status(500).json({ message: "Invalid AI Model Weightage. The sum of weightages should be 100.", status: false });
         }
 
-        // ✅ Weightage values
-        const firstWeightage = weightage[0] / 100;
-        const secondWeightage = weightage[1] / 100;
+        // ✅ Weightage values as floats
+        const firstWeightage = parseFloat(weightage[0]) / 100;
+        const secondWeightage = parseFloat(weightage[1]) / 100;
 
         const studentScores = {};
 
@@ -368,48 +367,42 @@ const getStudentArchivedScore = async (req, res) => {
         studentAnswers.forEach(answer => {
             const userId = answer.user_id.toString();
 
-            // Handle null scores by assigning 0
+            // Handle null scores by assigning 0 and ensure float values
             const first_score = parseFloat(answer.first_score || 0) * firstWeightage;
             const second_score = parseFloat(answer.second_score || 0) * secondWeightage;
 
-            console.log(first_score + " -> " + second_score);
-
-            const sum = first_score + second_score; // Total score for this question
-
-            // ✅ Find the grade label for the score sum
-            const grade = gradeRanges.find(range => sum >= range.startRange && sum <= range.endRange);
-            const label = grade ? grade.label : "not-competent"; // Default label if grade not found
+            const sum = parseFloat((first_score + second_score).toFixed(2)); // Total score for this question
 
             // ✅ Initialize student record if not present
             if (!studentScores[userId]) {
-                studentScores[userId] = { total_first_score: 0, total_second_score: 0, labels: [] };
+                studentScores[userId] = { total_score: 0, total_first_score: 0, total_second_score: 0 };
             }
 
-            // ✅ Accumulate scores and store competency label for each question
+            // ✅ Accumulate total scores for the student
+            studentScores[userId].total_score += sum;
             studentScores[userId].total_first_score += parseFloat(answer.first_score || 0);
             studentScores[userId].total_second_score += parseFloat(answer.second_score || 0);
-            studentScores[userId].labels.push(label);
         });
-
 
         // ✅ Process final results for each student
         const result = students.map(student => {
             const userId = student._id.toString();
-            const scores = studentScores[userId] || { total_first_score: 0, total_second_score: 0, labels: [] };
+            const scores = studentScores[userId] || { total_score: 0, total_first_score: 0, total_second_score: 0 };
 
-            // ✅ Calculate final score
-            const final_score = (scores.total_first_score * firstWeightage) + (scores.total_second_score * secondWeightage);
+            // ✅ Calculate the final weighted score
+            const final_score = parseFloat(scores.total_score.toFixed(2));
 
-            // ✅ Determine overall competency
-            const isCompetent = scores.labels.every(label => label === "competent");
+            // ✅ Determine overall competency based on total weighted score
+            const grade = gradeRanges.find(range => final_score >= range.startRange && final_score <= range.endRange);
+            const overall_status = grade ? grade.label : "not-competent";
 
             return {
                 user_id: student._id,
                 student_name: student.name,
                 student_email: student.email,
                 total_questions: questions.length,
-                status: isCompetent ? "competent" : "not-competent",
-                final_score: parseFloat(final_score.toFixed(2)),
+                status: overall_status,
+                final_score: final_score,
             };
         });
 
@@ -429,7 +422,6 @@ const getStudentArchivedScore = async (req, res) => {
         });
     }
 };
-
 
 module.exports = {
     removeArchiveStudentResponse,

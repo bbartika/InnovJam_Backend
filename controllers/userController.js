@@ -27,7 +27,7 @@ const createUser = async (req, res) => {
     //   return res.status(400).json({ message: "Invalid role." });
     // }
 
-    if (!['super_admin', 'admin', 'learner', 'assessor', 'trainer'].includes(role)) {
+    if (!['super_admin', 'admin', 'learner', 'assessor'].includes(role)) {
       return res.status(400).json({ message: "Invalid role." });
     }
 
@@ -112,7 +112,7 @@ const createUsers = async (req, res) => {
         //   throw new Error("Invalid role.");
         // }
 
-        if (!['super_admin', 'admin', 'learner', 'assessor', 'trainer'].includes(role)) {
+        if (!['super_admin', 'admin', 'learner', 'assessor'].includes(role)) {
           throw new Error("Invalid role.");
         }
 
@@ -213,7 +213,7 @@ const updateUser = async (req, res) => {
     }
 
     // ✅ Validate Role
-    if (role && !['super_admin','admin', 'learner', 'assessor', 'trainer'].includes(role)) {
+    if (role && !['super_admin','admin', 'learner', 'assessor'].includes(role)) {
       return res.status(400).json({ message: "Invalid role." });
     }
 
@@ -399,7 +399,6 @@ const getAllUsers = async (req, res) => {
     const admins = [];
     const learners = [];
     const assessors = [];
-    const trainers = [];
 
     // Classify users based on their roles
     users.forEach(user => {
@@ -416,9 +415,6 @@ const getAllUsers = async (req, res) => {
         case 'assessor':
           assessors.push(user);
           break;
-        case 'trainer':
-          trainers.push(user);
-          break;
         default:
           break;
       }
@@ -429,7 +425,6 @@ const getAllUsers = async (req, res) => {
       admins,
       learners,
       assessors,
-      trainers,
     });
   } catch (error) {
     console.error(error);
