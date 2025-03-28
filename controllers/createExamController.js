@@ -147,12 +147,13 @@ const createAssessment = async (req, res) => {
 const getAllAssessments = async (req, res) => {
   const { course_id } = req.params;
   try {
-
     if (!mongoIdVerification(course_id)) {
       return res.status(400).json({ message: "Invalid course ID." });
     }
 
     const assessments = await Assessment.find({ courseId: course_id });
+
+
     return res.status(200).json(assessments);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
@@ -163,6 +164,7 @@ const getAssessmentById = async (req, res) => {
   const { id } = req.params;
   try {
     const assessment = await Assessment.findById(id);
+   
     return res.status(200).json(assessment);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
