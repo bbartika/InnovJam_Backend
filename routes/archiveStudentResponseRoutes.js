@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+const authMiddleware = require('../middleware/authMiddleware');
 const { removeArchiveStudentResponse,
     getAllArchiveStudentResponseByAssessmentId,
     getArchiveStudentResponseByUserIdAndAssessentId, archiveStudentResponse, getStudentArchivedScore } = require('../controllers/archiveStudentResponseControllers');

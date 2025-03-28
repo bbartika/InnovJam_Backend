@@ -155,7 +155,7 @@ const getFilesByClass = async (req, res) => {
     const files = await File.find({ courseId }).select('-content');
 
     if (!files.length) {
-      return res.status(404).json({ message: 'No files found for this course', files: [] });
+      return res.status(200).json({ message: 'No files found for this course', files: [] });
     }
 
     res.status(200).json(files);

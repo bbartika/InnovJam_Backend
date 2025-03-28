@@ -214,61 +214,6 @@ const removeAssessment = async (req, res) => {
   }
 };
 
-// const getQuestionsForAssessment = async (req, res) => {
-//   const { id } = req.params;
-//   const { userId } = req.query;
-
-//   try {
-//     if (!mongoIdVerification(userId)) {
-//       return res.status(400).json({ message: "Invalid user ID." });
-//     }
-
-//     const assessment = await Assessment.findById(id);
-//     if (!assessment) {
-//       return res.status(404).json({ message: "Assessment not found" });
-//     }
-
-//     const assigned = await AssignAssessment.findOne({ userId, assessmentId: id });
-
-//     // Fetch questions without `suggested_answer`
-//     const questions = await Question.find({ assessmentId: id })
-//       .select("-suggested_answer -comparison_count -temperature")
-//       .lean();
-
-//     const questionIds = questions.map(q => q._id);
-
-//     // Fetch student answers for the given user and assessment questions
-//     const studentAnswers = await StudentAnswer.find({
-//       user_id: userId,
-//       question_id: { $in: questionIds }
-//     }).select("question_id status"); // Only fetch `status` field
-
-//     // Create a Map for quick lookup of student answer statuses
-//     const statusMap = new Map(studentAnswers.map(sa => [sa.question_id.toString(), sa.status]));
-
-//     // Attach status to each question while keeping `suggested_answer` excluded
-//     const questionsWithStatus = questions.map(q => ({
-//       ...q,
-//       status: statusMap.get(q._id.toString()) || 0 // Default to 0 if not found
-//     }));
-
-//     const assessmentdata = {
-//       ...assessment.toObject(),
-//       questions: questionsWithStatus
-//     };
-
-//     return res.status(200).json({
-//       success: true,
-//       assigned,
-//       assessmentdata
-//     });
-
-//   } catch (error) {
-//     return res.status(500).json({ message: "Internal Server Error", error: error.message });
-//   }
-// };
-
-
 const getQuestionsForAssessment = async (req, res) => {
   const { id } = req.params;
   const { userId } = req.query;
