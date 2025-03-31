@@ -197,7 +197,7 @@ const removeAssessment = async (req, res) => {
     }
 
     if (assessment.isLive) {
-      return res.status(400).json({ message: "Cannot delete a live assessment" });
+      return res.status(400).json({ message: "Live assessments cannot be deleted" });
     }
 
     const assinedAssessment = await AssignAssessment.findOne({ assessmentId: id });
