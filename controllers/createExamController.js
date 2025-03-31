@@ -78,7 +78,7 @@ const createAssessment = async (req, res) => {
       return res.status(500).json({ success: false, message: aiResponse.error });
     }
 
-    const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration , Suggested_answer_points_count } = aiResponse;
+    const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration, Suggested_answer_points_count } = aiResponse;
 
     if (!assessment_type || !assessment_instruction || !questions_and_answers) {
       return res.status(400).json({ success: false, message: "Invalid AI response. Please try again." });
@@ -164,7 +164,7 @@ const getAssessmentById = async (req, res) => {
   const { id } = req.params;
   try {
     const assessment = await Assessment.findById(id);
-   
+
     return res.status(200).json(assessment);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
@@ -194,6 +194,10 @@ const removeAssessment = async (req, res) => {
     // Handle errors and return an error response
     if (!assessment) {
       return res.status(404).json({ message: "Assessment not found" });
+    }
+
+    if (assessment.isLive) {
+      return res.status(400).json({ message: "Cannot delete a live assessment" });
     }
 
     const assinedAssessment = await AssignAssessment.findOne({ assessmentId: id });
@@ -270,25 +274,6 @@ const getQuestionsForAssessment = async (req, res) => {
   }
 };
 // Handle time completion logic
-const handleTimeCompletion = async (userId, assessmentId, assigned) => {
-  const questionsCount = await Question.countDocuments({ assessmentId });
-  const studentAnswersCount = await StudentAnswer.countDocuments({
-    user_id: userId,
-    assessment_id: assessmentId,
-  });
-
-  // Determine the status based on answers
-  const status = studentAnswersCount === questionsCount ? "completed" : "rejected";
-
-  // Update the status and remainingTime in AssignAssessment
-  await AssignAssessment.updateOne(
-    { _id: assigned._id },
-    { status, remainingTime: 0 }
-  );
-
-  console.log(`Assessment status updated to "${status}" for user: ${userId}`);
-};
-
 
 const updateQuestion_Temperature = async (req, res) => {
   const questions = req.body;
@@ -331,7 +316,28 @@ const updateQuestion_Temperature = async (req, res) => {
   }
 };
 
+const updateAssessmentStatus = async (req, res) => {
+  const { id } = req.params;
+  try {
 
+    // Update only the isLive field
+    const updatedAssessment = await Assessment.findByIdAndUpdate(
+      id,
+      { $set: { isLive: true } },
+      { new: true, runValidators: true }
+    );
+
+    // Check if assessment was found and updated
+    if (!updatedAssessment) {
+      return res.status(404).json({ success: false, message: 'Assessment not found' });
+    }
+
+    res.status(200).json({ success: true, data: updatedAssessment });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
 
 module.exports = {
   removeAssessment,
@@ -341,5 +347,6 @@ module.exports = {
   createAssessment,
   getAssessmentById,
   getQuestionsForAssessment,
-  updateQuestion_Temperature
+  updateQuestion_Temperature,
+  updateAssessmentStatus
 }

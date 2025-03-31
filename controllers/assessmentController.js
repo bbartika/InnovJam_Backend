@@ -54,17 +54,17 @@ const updateFinalEvaluatedData = async (req, res) => {
     if (!updatedAssessment) {
       return res.status(404).json({ message: "Assessment not found" });
     }
+
     console.log("Updated Assessment:");
 
     return res.status(200).json({
       message: "Final evaluated data updated successfully!",
       updatedAssessment,
     });
-  } catch (error) {
 
+  } catch (error) {
     console.error("Error updating the final evaluated data:", error);
     return res.status(500).json({ message: "Failed to save the final evaluated data" });
-
   }
 };
 

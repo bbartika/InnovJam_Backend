@@ -47,14 +47,14 @@ app.use('/api/archive-student-responses', archiveStudentResponseRoutes)
 
 // Home route for testing the server
 app.get('/', (req, res) => {
-  res.send('Welcome to the server!');
+    res.send('Welcome to the server!');
 });
 
 // Start the server on the specified port
 const PORT = process.env.PORT || 9100;
 
 app.all('*', (req, res) => {
-  res.status(404).send(`
+    res.status(404).send(`
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -125,7 +125,7 @@ app.all('*', (req, res) => {
 });
 
 server.listen(PORT, async () => {
-  await databaseConnection();
-  await initialUser();
-  console.log(`Server running on port ${PORT}`);
+    await databaseConnection();
+    await initialUser();
+    console.log(`Server running on port ${PORT}`);
 });

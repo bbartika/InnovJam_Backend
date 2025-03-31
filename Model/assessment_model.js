@@ -32,6 +32,11 @@ const assessmentSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  isLive: {
+    type: Boolean,
+    default: false,
+    required: false
+  },
   courseId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'courseschema',

@@ -356,8 +356,9 @@ const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
             return res.status(400).json({ message: "Invalid user ID or course ID." });
         }
 
-        // 🔍 Get all assessments linked to the given courseId
-        const assessments = await Assessment.find({ courseId }).lean();
+        // 🔍 Get all assessments linked to the given courseId where isLive is true
+        const assessments = await Assessment.find({ courseId, isLive: true }).lean();
+
         if (assessments.length === 0) {
             return res.status(404).json({ message: "No assessments found for this course." });
         }
