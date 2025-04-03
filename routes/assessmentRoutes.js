@@ -14,7 +14,7 @@ const validateObjectIdMiddleware = require('../middleware/mongoIdVerification')
 
 router.post('/createassesment', createAssessment);
 router.get('/getassessment/:id', validateObjectIdMiddleware, getAssessmentById);
-router.get('/getquestions/:id', validateObjectIdMiddleware, getQuestionsBasedOnAssessmentId);
+router.get('/getquestions/:id', validateObjectIdMiddleware, getQuestionsBasedOnAssessmentId); // assessment id 
 router.get('/getquestionsforassessment/:id', validateObjectIdMiddleware, getQuestionsForAssessment);
 router.get('/getallassessments/:course_id', getAllAssessments);
 router.put('/updatequestiontemperature', updateQuestion_Temperature);

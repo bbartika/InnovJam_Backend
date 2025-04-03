@@ -8,6 +8,8 @@ const GradeRange = require("../Model/gradeRangeModel");
 const AiModel = require("../Model/AIModel");
 const mongoIdVerification = require('../services/mongoIdValidation');
 
+
+
 const getStudentAndAssessmentDetails = async (req, res) => {
     const { course_id } = req.query;
     try {
