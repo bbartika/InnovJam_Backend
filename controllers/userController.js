@@ -300,7 +300,7 @@ const assignCourseToUser = async (req, res) => {
     }
 
     if (!course_code) {
-      return res.status(400).json({ message: "Please provide course code.", status: false });
+      return res.status(400).json({ message: "Please provide course code.", status: false});
     }
 
     // ✅ Validate Course Codes

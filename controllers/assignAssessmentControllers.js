@@ -22,17 +22,18 @@ const assignAssessment = async (req, res) => {
 
         // 🔍 Check if all provided learner IDs are valid
         if (!Array.isArray(learners) || learners.some(id => !mongoIdVerification(id))) {
-            return res.status(400).json({ message: "Invalid learner IDs provided." });
+            return res.status(400).json({ message: "Invalid learner IDs provided." }) ;
         }
 
         // 🔍 Check if the assessment exists
         const assessment = await Assessment.findById(assessmentId);
+        
         if (!assessment) {
             return res.status(404).json({ message: "Assessment not found" });
         }
 
         // 🔍 Check if the course exists
-        const course = await CourseSchema.findById(assessment.courseId);
+        const course = await CourseSchema.findById(assessment.courseId);  
         if (!course) {
             return res.status(404).json({ message: "Course not found" });
         }
@@ -55,41 +56,66 @@ const assignAssessment = async (req, res) => {
                 { $addToSet: { course_code: course.course_code } }
             );
         }
+        // Delete previous assignments for the given assessmentId
+        await AssignAssessment.deleteMany({ assessmentId });
 
-        // 🔍 Get already assigned learners
-        const existingAssignments = await AssignAssessment.find({
+        // Create new assignments
+        const newAssignments = learnersData.map(learner => ({
+            userId: learner._id,
             assessmentId: assessmentId,
-            userId: { $in: learnersData.map(learner => learner._id) }
-        });
-        const assignedUserIds = new Set(existingAssignments.map(a => a.userId.toString()));
-
-        // 🔍 Filter learners who are NOT already assigned
-        const newAssignments = learnersData
-            .filter(learner => !assignedUserIds.has(learner._id.toString()))
-            .map(learner => ({
-                userId: learner._id,
-                assessmentId: assessmentId,
-                status: "pending",
-                remainingTime: assessment.duration
-            }));
-
-        if (newAssignments.length === 0) {
-            return res.status(200).json({ message: "All learners are already assigned this assessment.", status: true });
-        }
+            status: "pending",
+            remainingTime: assessment.duration
+        }));
 
         await AssignAssessment.insertMany(newAssignments);
 
-        // 🔄 Update total_enrollment count
+        // Update course enrollment
         await CourseSchema.findByIdAndUpdate(
             assessment.courseId,
-            { $inc: { total_enrollment: newAssignments.length } } // Increment total_enrollment by the number of newly assigned learners
+            { $inc: { total_enrollment: newAssignments.length } }
         );
 
-        return res.status(201).json({ message: "Assessment assigned to new learners", assignments: newAssignments, status: true });
+        return res.status(201).json({ message: "Assessment reassigned to learners", assignments: newAssignments, status: true });
     } catch (error) {
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 };
+
+
+//         // 🔍 Get already assigned learners
+//         const existingAssignments = await AssignAssessment.find({
+//             assessmentId: assessmentId,
+//             userId: { $in: learnersData.map(learner => learner._id) }
+//         });
+//         const assignedUserIds = new Set(existingAssignments.map(a => a.userId.toString()));
+
+//         // 🔍 Filter learners who are NOT already assigned
+//         const newAssignments = learnersData
+//             .filter(learner => !assignedUserIds.has(learner._id.toString()))
+//             .map(learner => ({
+//                 userId: learner._id,
+//                 assessmentId: assessmentId,
+//                 status: "pending",
+//                 remainingTime: assessment.duration
+//             }));
+
+//         if(newAssignments.length === 0) {
+//             return res.status(200).json({ message: "All learners are already assigned this assessment.", status: true });
+//         }
+
+//         await AssignAssessment.insertMany(newAssignments);
+
+//         // 🔄 Update total_enrollment count
+//         await CourseSchema.findByIdAndUpdate(
+//             assessment.courseId,
+//             { $inc: { total_enrollment: newAssignments.length } } // Increment total_enrollment by the number of newly assigned learners
+//         );
+
+//         return res.status(201).json({ message: "Assessment assigned to new learners", assignments: newAssignments, status: true });
+//     } catch (error) {
+//         return res.status(500).json({ message: "Internal Server Error", error: error.message });
+//     }
+// };
 
 const reassignAssessment = async (req, res) => {
     const { userId, assessmentId } = req.body;
@@ -333,7 +359,10 @@ const getAllAssignedAssessmentByAssessmentId = async (req, res) => {
             .lean(); ``
 
         if (assignments.length === 0) {
-            return res.status(404).json({ message: "No assignments found for this assessment." });
+            return res.status(200).json({ message: "No assignments found for this assessment." ,  assessmentId,
+                assessment_name: assessment.assessment_name || assessment.title,
+                assessment_type: assessment.assessment_type || "N/A",
+                assigned_learners: []});
         }
 
         // ✅ Structure response with additional assessment details

@@ -160,7 +160,7 @@ const getAllAssessments = async (req, res) => {
   }
 };
 
-const getAssessmentById = async (req, res) => {
+const getAssessmentById = async (req, res) => { 
   const { id } = req.params;
   try {
     const assessment = await Assessment.findById(id);

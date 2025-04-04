@@ -22,4 +22,4 @@ router.put('/update-assessment/:id', validateObjectIdMiddleware, udpateAssignedA
 router.put("/update-remaining-time", checkAllInProgressAssessments); // assigning id 
 router.delete('/remove-assessment/:id', validateObjectIdMiddleware, removeAssignedAssessment);
 
-module.exports = router;
+module.exports = router; 
