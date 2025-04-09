@@ -1,28 +1,46 @@
-const File = require('../Model/file');
-const Course = require('../Model/CourseSchema_model');
-const mongoIdVerification = require('../services/mongoIdValidation');
-const fs = require('fs');
+             
+const File = require("../Model/file");
+const Course = require("../Model/CourseSchema_model");
+const mongoIdVerification = require("../services/mongoIdValidation");
+const fs = require("fs");
+const fsPromises = require("fs/promises");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
-const path = require('path');
+const path = require("path");
 
 // 📝 Function to extract text from a PDF file
 const parsePdf = async (filePath) => {
   try {
+    console.log(filePath, "📂 file path from pdf parse");
+
     if (!fs.existsSync(filePath)) {
       throw new Error("File does not exist.");
     }
-    
+
     const dataBuffer = fs.readFileSync(filePath);
+
     if (!dataBuffer || dataBuffer.length === 0) {
       throw new Error("Empty PDF file.");
     }
 
     const data = await pdfParse(dataBuffer);
-    return data.text || "No text extracted from PDF.";
+
+    if (!data.text || data.text.trim().length === 0) {
+      throw new Error("No extractable text found in PDF.");
+    }
+
+    return data.text;
   } catch (error) {
     console.error("❌ Error during PDF parsing:", error.message);
-    return "Error parsing PDF.";
+
+    // Optional: Log failed file for review
+    const logPath = path.join(__dirname, "../logs/failed_pdfs.log");
+    fs.appendFileSync(
+      logPath,
+      `${new Date().toISOString()} - ${filePath} - ${error.message}\n`
+    );
+
+    return "Error parsing PDF or no extractable text.";
   }
 };
 
@@ -43,7 +61,7 @@ const uploadFile = async (req, res) => {
   const file = req.file;
 
   if (!file) {
-    return res.status(400).json({ message: 'No file uploaded' });
+    return res.status(400).json({ message: "No file uploaded" });
   }
 
   try {
@@ -53,11 +71,11 @@ const uploadFile = async (req, res) => {
 
     const course = await Course.findById(courseId);
     if (!course) {
-      return res.status(404).json({ message: 'Course not found' });
+      return res.status(404).json({ message: "Course not found" });
     }
 
-    let extractedText = "";
     const ext = path.extname(file.originalname).toLowerCase();
+    let extractedText = "";
 
     if (ext === ".pdf") {
       extractedText = await parsePdf(file.path);
@@ -65,7 +83,6 @@ const uploadFile = async (req, res) => {
       extractedText = await parseDocx(file.path);
     }
 
-    // Generate a unique filename
     const fileName = `${Date.now()}_${file.originalname}`;
 
     const newFile = new File({
@@ -77,15 +94,18 @@ const uploadFile = async (req, res) => {
 
     await newFile.save();
 
+    
+
     res.status(200).json({
       fileId: newFile._id,
       uploaded: true,
-      message: 'File uploaded and saved to database',
+      message: "File uploaded and saved to database",
     });
-
   } catch (error) {
-    console.error('❌ Error saving file to database:', error);
-    res.status(500).json({ message: 'Error saving file to database', error: error.message });
+    console.error("❌ Error saving file to database:", error);
+    res
+      .status(500)
+      .json({ message: "Error saving file to database", error: error.message });
   }
 };
 
@@ -96,7 +116,10 @@ const updateFile = async (req, res) => {
   const file = req.file;
 
   try {
-    if (!mongoIdVerification(fileId) || (courseId && !mongoIdVerification(courseId))) {
+    if (
+      !mongoIdVerification(fileId) ||
+      (courseId && !mongoIdVerification(courseId))
+    ) {
       return res.status(400).json({ message: "Invalid file ID or course ID." });
     }
 
@@ -112,11 +135,11 @@ const updateFile = async (req, res) => {
       }
     }
 
-    let updatedFields = { title };
-    
+    const updatedFields = { title };
+
     if (file) {
-      let extractedText = "";
       const ext = path.extname(file.originalname).toLowerCase();
+      let extractedText = "";
 
       if (ext === ".pdf") {
         extractedText = await parsePdf(file.path);
@@ -129,17 +152,20 @@ const updateFile = async (req, res) => {
       updatedFields.content = extractedText;
     }
 
-    const updatedFile = await File.findByIdAndUpdate(fileId, updatedFields, { new: true });
+    const updatedFile = await File.findByIdAndUpdate(fileId, updatedFields, {
+      new: true,
+    });
 
     res.status(200).json({
       fileId: updatedFile._id,
       updated: true,
       message: "File updated successfully",
     });
-
   } catch (error) {
     console.error("❌ Error updating file:", error);
-    res.status(500).json({ message: "Error updating file", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error updating file", error: error.message });
   }
 };
 
@@ -152,16 +178,13 @@ const getFilesByClass = async (req, res) => {
       return res.status(400).json({ message: "Invalid course ID." });
     }
 
-    const files = await File.find({ courseId }).select('-content');
-
-    // if (!files.length) {
-    //   return res.status(200).json({ message: 'No files found for this course', files: [] });
-    // }
-
+    const files = await File.find({ courseId }).select("-content");
     res.status(200).json(files);
   } catch (error) {
     console.error("❌ Error fetching files:", error);
-    res.status(500).json({ message: "Failed to fetch files", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch files", error: error.message });
   }
 };
 
@@ -171,28 +194,24 @@ const deleteFileById = async (req, res) => {
 
   try {
     const file = await File.findById(id);
-    
+
     if (!file) {
-      return res.status(404).json({ message: 'File not found.' });
+      return res.status(404).json({ message: "File not found." });
     }
 
-    const filePath = path.join(__dirname, '../files', file.fileName);
-
+    const filePath = path.join(__dirname, "../files", file.fileName);
     await File.findByIdAndDelete(id);
 
     if (fs.existsSync(filePath)) {
-      fs.unlink(filePath, (err) => {
-        if (err) {
-          console.error('❌ Error deleting local file:', err);
-          return res.status(500).json({ message: 'Failed to delete file from local storage' });
-        }
-      });
+      await fsPromises.unlink(filePath);
     }
 
-    res.status(200).json({ message: 'File deleted successfully' });
+    res.status(200).json({ message: "File deleted successfully" });
   } catch (error) {
-    console.error('❌ Error deleting file:', error);
-    res.status(500).json({ error: 'Failed to delete file' });
+    console.error("❌ Error deleting file:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to delete file", error: error.message });
   }
 };
 

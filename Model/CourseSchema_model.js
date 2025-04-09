@@ -15,6 +15,10 @@ const CourseSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    isAvailableLiveAssessment: {
+      type: Boolean,
+      default: false,
+    },
     visibility: {
       type: String,
       default: "Public",

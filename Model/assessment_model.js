@@ -49,3 +49,4 @@ const assessmentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('Assessment', assessmentSchema);
+ 

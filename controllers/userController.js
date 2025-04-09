@@ -303,13 +303,44 @@ const assignCourseToUser = async (req, res) => {
       return res.status(400).json({ message: "Please provide course code.", status: false});
     }
 
+    //find previously assigned course codes of this user
+    const previousCourseCodes = user.course_code || [];
+    console.log(previousCourseCodes);
+
+
     // ✅ Validate Course Codes
     const validCourses = await Course.find({ course_code: { $in: course_code } });
     const validCourseCodes = validCourses.map(course => course.course_code);
-
+   
+    
     if (validCourseCodes.length === 0) {
       return res.status(404).json({ message: "No valid courses found.", status: false });
     }
+    //find course codes which is not in validCourseCodes but were in previousCourseCodes
+    const invalidCourseCodes = previousCourseCodes.filter(code => !validCourseCodes.includes(code));
+    //if there is any invalid course code, then check if there is any live assessment available for that course
+    const invalidCourses = await Course.find({ course_code: { $in: invalidCourseCodes } });
+    
+    // ✅ Check if there is any available live assessment for the invalid courses
+    for (const course of invalidCourses) {
+      if (course.isAvailableLiveAssessment) {
+        //check user is assigned to this live assessment of this course or not keep in mind one thing one course have multiple assessment and from multiple assessments some assessment can be live and some can not be
+        const assignedAssessments = await Assigned.findOne({ courseId: course._id, userId: id });
+        //iterates over the assignedassessments and check if any of them is live
+        for (const assessment of assignedAssessments) {
+          const assessmentDetails = await Assessment.findById(assessment.assessmentId);
+          if (assessmentDetails.isLive) {
+            return res.status(400).json({ message: `Course ${course.course_code} has an available live assessment.`, status: false });
+          }
+        } 
+      }
+    }
+
+    //Replace 
+
+
+    
+
 
     // ✅ Replace existing courses with new ones
     user.course_code = validCourseCodes;

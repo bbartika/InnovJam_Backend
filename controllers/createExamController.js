@@ -25,7 +25,8 @@ const uploadToAiApi = async (content, retries = 3) => {
         { timeout: 600000 }
       );
       return response.data;
-    } catch (error) {
+    } 
+    catch (error) {
       console.error(`❌ Attempt ${attempt} failed:`, error.message || error);
       if (attempt === retries) return { error: "AI API request failed after retries." };
     }
@@ -69,9 +70,11 @@ const createAssessment = async (req, res) => {
     if (!file) {
       return res.status(404).json({ error: "File not found" });
     }
+    console.log("File Content:", file.content);
 
     // 🔄 Process file with AI
     const aiResponse = await uploadToAiApi(file.content);
+    console.log("AI Response:", aiResponse);
 
     // 🛑 If AI API fails, return a safe error response
     if (aiResponse.error) {
@@ -326,6 +329,12 @@ const updateAssessmentStatus = async (req, res) => {
       { $set: { isLive: true } },
       { new: true, runValidators: true }
     );
+    const course = await Course.findById(updatedAssessment.courseId);
+    if (!course) {
+      return res.status(404).json({ success: false, message: 'Course not found' });
+    }
+    // Update the course's isAvailableLiveAssessment field
+    course.isAvailableLiveAssessment = true;
 
     // Check if assessment was found and updated
     if (!updatedAssessment) {
