@@ -8,7 +8,8 @@ const gradeRangeSchema = new mongoose.Schema({
     },
     label: {
         type: String,
-        required: true
+        required: true,
+        enum : ["competent", "not-competent"]
     },
     startRange: {
         type: Number,

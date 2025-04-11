@@ -334,8 +334,8 @@ const updateAssessmentStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Course not found' });
     }
     // Update the course's isAvailableLiveAssessment field
-    course.isAvailableLiveAssessment = true;
-
+    course.isAvailableLiveAssessment = True;
+    await course.save();
     // Check if assessment was found and updated
     if (!updatedAssessment) {
       return res.status(404).json({ success: false, message: 'Assessment not found' });

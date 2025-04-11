@@ -11,6 +11,26 @@ const createGradeRange = async (req, res) => {
       return res.status(400).json({ error: "All fields are required" });
     }
 
+    if (label !== "competent" && label !== "not-competent") {
+      return res.status(400).json({ error: "Invalid label value" });
+    }
+
+    if (startRange < 0 || endRange < 0) {
+      return res.status(400).json({ error: "Range values must be positive" });
+    }
+
+    if (startRange === endRange) {
+      return res.status(400).json({
+        error: "Start range and end range cannot be the same",
+      });
+    }
+
+    if (startRange > endRange) {
+      return res
+        .status(400)
+        .json({ error: "Start range cannot be greater than end range" });
+    }
+
     if (!mongoIdVerification(grade_id)) {
       return res.status(400).json({ message: "Invalid grade ID." });
     }
@@ -78,11 +98,9 @@ const removeGradeRange = async (req, res) => {
     const assessment = await Assessment.findOne({ grade_id: id });
 
     if (!assessment) {
-      return res
-        .status(400)
-        .json({
-          message: "Cannot delete a grade range with associated assessments",
-        });
+      return res.status(400).json({
+        message: "Cannot delete a grade range with associated assessments",
+      });
     }
     const range = await GradeRange.findByIdAndDelete(id);
     if (!range) {
