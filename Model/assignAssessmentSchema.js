@@ -13,7 +13,7 @@ const assignAssessmentSchema = new mongoose.Schema({
     },
      remainingTime: {
         type: Number,
-        required: true
+        
     },
     status: {
         type: String,

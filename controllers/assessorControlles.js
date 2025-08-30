@@ -151,7 +151,6 @@ const getStudentScore = async (req, res) => {
     }
 };
 
-
 const getStudentAnswerResponse = async (req, res) => {
     const { user_Id, assessment_id } = req.query;
 
@@ -205,7 +204,7 @@ const getStudentAnswerResponse = async (req, res) => {
             let first_score = 0;
             let second_score = 0;
 
-            if (answer) {
+            if (answer) {         
                 first_score = parseFloat(answer.first_score || 0) * firstWeightage;
                 second_score = parseFloat(answer.second_score || 0) * secondWeightage;
             }
@@ -236,7 +235,7 @@ const getStudentAnswerResponse = async (req, res) => {
             studentResponses: mergedData
         });
 
-    } catch (error) {
+    }  catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Internal Server Error", error: error.message });
     }

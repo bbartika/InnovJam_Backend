@@ -5,6 +5,7 @@ const mongoIdVerification = require("../services/mongoIdValidation");
 
 const createGradeRange = async (req, res) => {
   const { grade_id, label, startRange, endRange } = req.body;
+  console.log(startRange, endRange);
 
   try {
     if (!grade_id || !label || startRange < 0 || !endRange) {
@@ -15,20 +16,17 @@ const createGradeRange = async (req, res) => {
       return res.status(400).json({ error: "Invalid label value" });
     }
 
-    if (startRange < 0 || endRange < 0) {
+    if (Number(startRange) < 0 || Number(endRange) < 0) {
       return res.status(400).json({ error: "Range values must be positive" });
     }
 
     if (startRange === endRange) {
       return res.status(400).json({
-        error: "Start range and end range cannot be the same",
-      });
+        error: "Start range and end range cannot be the same"});
     }
 
-    if (startRange > endRange) {
-      return res
-        .status(400)
-        .json({ error: "Start range cannot be greater than end range" });
+    if (Number(startRange) > Number(endRange)) {
+      return res.status(400).json({ error: "Start range cannot be greater than end range" });
     }
 
     if (!mongoIdVerification(grade_id)) {
@@ -36,15 +34,16 @@ const createGradeRange = async (req, res) => {
     }
 
     const grade = await Grade.findById(grade_id);
-
     if (!grade) {
       return res.status(404).json({ error: "Grade not found" });
     }
 
-    if (+startRange > +endRange) {
-      return res
-        .status(400)
-        .json({ error: "Start range cannot be greater than end range" });
+    // Check if the label already exists for the same grade_id
+    const existingLabel = await GradeRange.findOne({ grade_id, label });
+    if (existingLabel) {
+      return res.status(409).json({
+        error: `The label "${label}" already exists for this grade.`,
+      });
     }
 
     const newRange = new GradeRange({ grade_id, label, startRange, endRange });
@@ -97,7 +96,7 @@ const removeGradeRange = async (req, res) => {
 
     const assessment = await Assessment.findOne({ grade_id: id });
 
-    if (!assessment) {
+    if (assessment) {
       return res.status(400).json({
         message: "Cannot delete a grade range with associated assessments",
       });
@@ -123,13 +122,23 @@ const updateGradeRange = async (req, res) => {
     if (!mongoIdVerification(id)) {
       return res.status(400).json({ message: "Invalid range ID." });
     }
+    
+    if (label !== "competent" && label !== "not-competent") {
+      return res.status(400).json({ error: "Invalid label value" });
+    }
 
     const range = await GradeRange.findById(id);
     if (!range) {
       return res.status(404).json({ message: "Grade range not found" });
     }
+    //check in this grade if the label already exists
+    const existingLabel = await GradeRange.findOne({
+      grade_id: range.grade_id,
+      label,
+    });
 
-    if (startRange > endRange) {
+
+    if (Number(startRange) > Number(endRange)) {
       return res
         .status(400)
         .json({ error: "Start range cannot be greater than end range" });

@@ -38,15 +38,15 @@ const assignAssessment = async (req, res) => {
           return res.status(404).json({ message: "Course not found" });
       }
           
-      // 🔍 Get learners from provided learner IDs
+      // 🔍 Get learners from provided learn er IDs
       const learnersData = await User.find(
           { _id: { $in: learners }, role: "learner" },
           { password: 0, password_org: 0 }
       );
 
-      // if (learnersData.length !== learners.length) {
-      //     return res.status(400).json({ message: "Some learner IDs are invalid or do not exist.", status: false });
-      // }
+      if (learnersData.length !== learners.length) {
+          return res.status(400).json({ message: "Some learner IDs are invalid or do not exist.",learners: [], learnersData: [],  status: false });
+      }
 
       // 🔍 Ensure all learners are part of the course
       const learnersNotInCourse = learnersData.filter(learner => !learner.course_code.includes(course.course_code));
@@ -138,14 +138,14 @@ const reassignAssessment = async (req, res) => {
     if (!assignment) {
       return res
         .status(404)
-        .json({ message: "Assignment not found for the user.", status: false });
+        .json({ message: "Assignment not found for the user.",assignments: [], status: false });
     }
 
     const assessment = await Assessment.findById(assessmentId);
     if (!assessment) {
       return res
         .status(404)
-        .json({ message: "Assessment not found.", status: false });
+        .json({ message: "Assessment not found.",assessments: [], status: false });
     }
 
     // 🔍 Fetch student answers
@@ -230,7 +230,7 @@ const udpateAssignedAssessment = async (req, res) => {
     const assignment = await AssignAssessment.findById(id);
 
     if (!assignment) {
-      return res.status(404).json({ message: "Assigned assessment not found" });
+      return res.status(404).json({ message: "Assigned assessment not found" , assessments: [], status: false});
     }
 
     // Get Assessment and Questions
@@ -262,7 +262,7 @@ const udpateAssignedAssessment = async (req, res) => {
       return res
         .status(404)
         .json({
-          message: "No student answers found for this assessment.",
+          message: "Either no student answers found for this assessment or student failed to answer all the questions in the given time.",
           status: false,
         });
     }
@@ -313,7 +313,7 @@ const udpateAssignedAssessment = async (req, res) => {
       })),
       aiModelDetail.llm_name[1]
     );
-
+    
     // Update Student Answers with AI Evaluation
     const updatePromises = studentAnswers.map((answer, index) => {
       const { score: firstScore, feedback: first_score_feedback } =
@@ -358,8 +358,17 @@ const getAssignAssessmentByUserIdAndAssessmentId = async (req, res) => {
 
     // 🔍 Check if the assessment exists
     const assessment = await Assessment.findById(assessmentId).lean();
+    // if (!assessment) {
+    //   return res.status(404).json({ message: "Assessment not found" });
+    // }
     if (!assessment) {
-      return res.status(404).json({ message: "Assessment not found" });
+      return res.status(200).json({
+        message: "Assignment not found",
+        assessment_name: "Not found",
+        assessments: [],
+        grade_id: "Not found",
+        status: false
+      });
     }
 
     // 🔍 Check if the assignment exists
@@ -368,10 +377,15 @@ const getAssignAssessmentByUserIdAndAssessmentId = async (req, res) => {
       .populate("assessmentId", "title description")
       .lean();
 
-    if (!assignment) {
-      return res.status(404).json({ message: "Assignment not found" });
-    }
-
+      if (!assignment) {
+        return res.status(404).json({
+          message: "Assignment not found",
+          assessment_name: "Not found",
+          assessments: [],
+          grade_id: "Not found",
+          status: false
+        });
+      }
     // ✅ Merge assessment details with assignment data
     const responseData = {
       ...assignment,
@@ -399,7 +413,13 @@ const getAllAssignedAssessmentByAssessmentId = async (req, res) => {
     const assessment = await Assessment.findById(assessmentId).lean();
 
     if (!assessment) {
-      return res.status(404).json({ message: "Assessment not found" });
+      return res.status(200).json({
+        message: "Assignment not found",
+        assessment_name: "Not found",
+        assessments: [],
+        grade_id: "Not found",
+        status: false
+      });
     }
 
     // 🔍 Fetch all assignments for this assessment
@@ -461,9 +481,12 @@ const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
     if (assessments.length === 0) {
       return res
         .status(404)
-        .json({ message: "No assessments found for this course." });
+        .json({ message: "No assessments found for this course.",assessment_name: "Not found",
+          grade_id: "Not found",
+          status: false });
     }
-
+    
+    
     // 🔍 Get all assignments of the user for this course's assessments
     const assessmentIds = assessments.map((a) => a._id);
     // const assignments = await AssignAssessment.find({
@@ -481,10 +504,13 @@ const getAssignedAssessmentsByUserIdAndCourseId = async (req, res) => {
 
     if (assignments.length === 0) {
       return res
-        .status(404)
+        .status(200)
         .json({
           message:
             "No assigned assessments found for this user in this course.",
+          assessments: [],
+          grade_id: "Not found",
+          status: false 
         });
     }
 
@@ -604,7 +630,7 @@ const handleTimeCompletion = async (userId, assessmentId, assigned) => {
   );
 
   console.log(`Assessment status updated to "${status}" for user: ${userId}`);
-};
+}; 
 
 module.exports = {
   assignAssessment,

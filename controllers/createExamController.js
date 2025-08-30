@@ -60,8 +60,9 @@ const createAssessment = async (req, res) => {
     if (!grade) {
       return res.status(404).json({ error: "Grade not found" });
     }
-
+    
     const aiModel = await AiModel.findById(ai_model_id);
+    
     if (!aiModel) {
       return res.status(404).json({ error: "AI model not found" });
     }
@@ -73,6 +74,7 @@ const createAssessment = async (req, res) => {
     console.log("File Content:", file.content);
 
     // 🔄 Process file with AI
+    
     const aiResponse = await uploadToAiApi(file.content);
     console.log("AI Response:", aiResponse);
 
@@ -82,13 +84,14 @@ const createAssessment = async (req, res) => {
     }
 
     const { assessment_type, case_study_context, assessment_instruction, questions_and_answers, duration, Suggested_answer_points_count } = aiResponse;
+    console.log("duration", duration);
 
     if (!assessment_type || !assessment_instruction || !questions_and_answers) {
       return res.status(400).json({ success: false, message: "Invalid AI response. Please try again." });
     }
 
     // 🔍 Check if an assessment already exists
-    let existingAssessment = await Assessment.findOne({ courseId: course_id, assessment_file_id: fileId });
+    let existingAssessment = await Assessment.findOne({ courseId: course_id, assessment_file_id: fileId});
 
     if (existingAssessment) {
       await Question.deleteMany({ assessmentId: existingAssessment._id });
@@ -103,7 +106,7 @@ const createAssessment = async (req, res) => {
 
       await existingAssessment.save();
     } else {
-      existingAssessment = new Assessment({
+      const newAssessment = new Assessment({
         assessment_name,
         assessment_type,
         case_study_context,
@@ -113,24 +116,44 @@ const createAssessment = async (req, res) => {
         assessment_instruction: assessment_instruction || [],
         courseId: course_id,
         assessment_file_id: fileId,
-      });
+      }
+    );
 
-      await existingAssessment.save();
+      await newAssessment.save();
+
+      existingAssessment = newAssessment; // ✅ Assign to use below
     }
+    
 
     // 🔄 Insert new questions
-    const questionDocuments = questions_and_answers.map((q) => ({
-      assessmentId: existingAssessment._id,
-      question_number: q.question_number,
-      question: q.question,
-      question_instruction: q.question_instruction || "",
-      suggested_answer: q.suggested_answer || [],
-      comparison_instruction: q.comparison_instruction || "",
-      comparison_count: q.comparison_count || 0,
-      Suggested_answer_points_count: q.Suggested_answer_points_count
-    }));
+    // const questionDocuments = questions_and_answers.map((q) => ({
+    //   assessmentId: existingAssessment._id,
+    //   question_number: q.question_number,
+    //   question: q.question,
+    //   question_instruction: q.question_instruction || "",
+    //   suggested_answer: q.suggested_answer || [],
+    //   comparison_instruction: q.comparison_instruction || "",
+    //   comparison_count: q.comparison_count || 0,
+    //   Suggested_answer_points_count: q.Suggested_answer_points_count
+    // }));
 
-    await Question.insertMany(questionDocuments);
+    const questionDocuments = questions_and_answers
+  .sort((a, b) => a.question_number - b.question_number)  // <-- ensure order
+  .map((q) => ({
+    assessmentId: existingAssessment._id,
+    question_number: q.question_number,
+    question: q.question,
+    question_instruction: q.question_instruction || "",
+    suggested_answer: q.suggested_answer || [],
+    comparison_instruction: q.comparison_instruction || "",
+    comparison_count: q.comparison_count || 0,
+    Suggested_answer_points_count: q.Suggested_answer_points_count
+  }));
+
+await Question.insertMany(questionDocuments);
+console.log("questions_by_sorted_order",questionDocuments)
+
+  // await Question.insertMany(questionDocuments);
 
     return res.status(200).json({
       success: true,
@@ -177,14 +200,15 @@ const getAssessmentById = async (req, res) => {
 const getQuestionsBasedOnAssessmentId = async (req, res) => {
   const { id } = req.params;
   try {
-    const questions = await Question.find({ assessmentId: id });
+    // const questions = await Question.find({ assessmentId: id });
+    const questions = await Question.find({ assessmentId: id }).sort({ question_number: 1 });
     return res.status(200).json(questions);
   } catch (error) {
     return res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 }
 
-const removeAssessment = async (req, res) => {
+const removeAssessment = async (req, res) => {  
   const { id } = req.params;
 
   try {
@@ -261,10 +285,18 @@ const getQuestionsForAssessment = async (req, res) => {
       status: statusMap.get(q._id.toString()) || 0 // Default to 0 if not found
     }));
 
+    // const assessmentdata = {
+    //   ...assessment.toObject(),
+    //   questions: questionsWithStatus
+    // };
     const assessmentdata = {
       ...assessment.toObject(),
+      duration: Number(assessment.duration) , // Ensure it's a number
       questions: questionsWithStatus
     };
+
+    console.log("Assessment Duration Type:", typeof assessment.duration, "Value:", assessment.duration);
+
 
     return res.status(200).json({
       success: true,
@@ -359,3 +391,40 @@ module.exports = {
   updateQuestion_Temperature,
   updateAssessmentStatus
 }
+
+
+
+//Assessment-> assessment id
+// assessment name
+// course id
+// assignerdUser : name of users
+//AI model 
+
+//Question ->
+//question 
+//assessment_id
+//answer
+//suggested answer
+
+//Controller-> createAssessment ->
+//file,= req.body
+//question, answer, suggested answer, AI model = AI-Upload(file) which will process this file extract question answer suggested answeretc
+
+//              assignAssessment->
+                  // student_id, assessment_id = req.body;
+                  // assignAssessment = new assignAssessment({
+                  // assessment_id
+                  // student_id
+                  
+                  // })
+
+                  // submittedAssessmentByStudent->
+                  //Answer db will be updated with answer, question_id,
+                  // AI will proicess the assessment, question and answer
+
+                  //getAssessmentById->
+                  //assessmentId , studentId,
+                  //getAssessmentById = Assessment.findById(assessmentId)
+
+                  //Assessor will check from the assessor side
+                  

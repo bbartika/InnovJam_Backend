@@ -91,7 +91,7 @@ const getCourseById = async (req, res) => {
 // Update a course
 const updateCourse = async (req, res) => {
   try {
-    const { course_name, course_code, description, total_enrollment, visibility, startDate, endDate } = req.body;
+    const { course_name, course_code, description,total_enrollment, visibility, startDate, endDate } = req.body;
 
     if (!course_name || !course_code || !visibility || !startDate || !endDate) {
       return res.status(400).json({ message: "All fields except description are required." });
@@ -104,6 +104,7 @@ const updateCourse = async (req, res) => {
         return res.status(400).json({ message: "Course code must be unique." });
       }
     }
+    // const total_enrollment = await 
 
     const updatedCourse = await CourseSchema.findByIdAndUpdate(
       req.params.id,

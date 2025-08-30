@@ -26,7 +26,7 @@ const updateAiModel = async (req, res) => {
     const { id } = req.params;
     const { llm_name, model_type, weightage } = req.body;
 
-    try {
+    try { 
         // Fetch the model first
         const existingModel = await AIModel.findById(id);
         if (!existingModel) {
@@ -82,7 +82,6 @@ const removeAiModel = async (req, res) => {
     const { id } = req.params;
 
     try {
-
         const assessment = await Assessment.findOne({ ai_model_id: id });
         if (assessment) {
             return res.status(400).json({ success: false, message: "Cannot delete an AI Model with associated assessments" });

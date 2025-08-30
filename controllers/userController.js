@@ -205,7 +205,7 @@ const getUsersByRole = async (req, res) => {
   }
 };
 
-const updateUser = async (req, res) => {
+const updateUser = async (req, res) => {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
   const { id } = req.params;
   const { name, email, password, role, course_code } = req.body;
 

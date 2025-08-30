@@ -31,11 +31,17 @@ const server = http.createServer(app);
 // Middleware setup
 app.use(cors());
 app.use(express.json());
+// const api_main_route = "/v1/api/user"; // Define the main API route
 
 // Define API routes
 app.use("/api/auth", authRoutes);
+
 app.use("/api/files", fileRoutes);
+// app.use(`${api_main_route}/files`, fileRoutes);  
+
 app.use("/api/assessments", assessmentRoutes);
+// app.use(`${api_main_route}/assessments`, assessmentRoutes);
+
 app.use("/api/courses", courseRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/courseware", coursewareRoutes);
