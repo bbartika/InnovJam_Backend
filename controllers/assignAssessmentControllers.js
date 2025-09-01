@@ -88,40 +88,7 @@ const assignAssessment = async (req, res) => {
 
 
 
-//         // 🔍 Get already assigned learners
-//         const existingAssignments = await AssignAssessment.find({
-//             assessmentId: assessmentId,
-//             userId: { $in: learnersData.map(learner => learner._id) }
-//         });
-//         const assignedUserIds = new Set(existingAssignments.map(a => a.userId.toString()));
 
-//         // 🔍 Filter learners who are NOT already assigned
-//         const newAssignments = learnersData
-//             .filter(learner => !assignedUserIds.has(learner._id.toString()))
-//             .map(learner => ({
-//                 userId: learner._id,
-//                 assessmentId: assessmentId,
-//                 status: "pending",
-//                 remainingTime: assessment.duration
-//             }));
-
-//         if(newAssignments.length === 0) {
-//             return res.status(200).json({ message: "All learners are already assigned this assessment.", status: true });
-//         }
-
-//         await AssignAssessment.insertMany(newAssignments);
-
-//         // 🔄 Update total_enrollment count
-//         await CourseSchema.findByIdAndUpdate(
-//             assessment.courseId,
-//             { $inc: { total_enrollment: newAssignments.length } } // Increment total_enrollment by the number of newly assigned learners
-//         );
-
-//         return res.status(201).json({ message: "Assessment assigned to new learners", assignments: newAssignments, status: true });
-//     } catch (error) {
-//         return res.status(500).json({ message: "Internal Server Error", error: error.message });
-//     }
-// };
 
 
 const reassignAssessment = async (req, res) => {
