@@ -56,9 +56,10 @@ const assignAssessment = async (req, res) => {
               { _id: { $in: learnersNotInCourse.map(l => l._id) } },
               { $addToSet: { course_code: course.course_code } }
           );
-      } 
+      }
+      const objectIdAssessmentId = new mongoose.Types.ObjectId(assessmentId); 
       //Delete previous assignments for the given assessmentId
-      await AssignAssessment.deleteMany({ assessmentId });
+      await AssignAssessment.deleteMany({ assessmentId: objectIdAssessmentId });
 
       // await AssignAssessment.updateMany(
       //     { userId: { $in: learnersData.map(learner => learner._id) }, assessmentId:assessmentId, status: "pending" ,remainingTime: assessment.duration})
