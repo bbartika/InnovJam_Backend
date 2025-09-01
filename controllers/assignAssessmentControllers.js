@@ -67,7 +67,7 @@ const assignAssessment = async (req, res) => {
       //Create new assignments
       const newAssignments = learnersData.map(learner => ({
           userId: learner._id,
-          assessmentId: assessmentId,
+          assessmentId: objectIdAssessmentId,
           status: "pending",
           remainingTime: assessment.duration
       }));
